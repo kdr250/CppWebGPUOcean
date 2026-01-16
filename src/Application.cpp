@@ -24,11 +24,24 @@ bool Application::Initialize()
 
 void Application::RunLoop()
 {
-    while (glfwWindowShouldClose(mWindow) == GLFW_FALSE)
+#ifdef __EMSCRIPTEN__
+    auto callback = [](void* arg)
     {
-        glfwSwapBuffers(mWindow);
-        glfwPollEvents();
+        Application* pApp = reinterpret_cast<Application*>(arg);
+        if (pApp->ShouldClose())
+        {
+            emscripten_cancel_main_loop();
+            return;
+        }
+        pApp->Loop();
+    };
+    emscripten_set_main_loop_arg(callback, this, 0, true);
+#else
+    while (!ShouldClose())
+    {
+        Loop();
     }
+#endif
 }
 
 void Application::Shutdown()
@@ -37,8 +50,19 @@ void Application::Shutdown()
     glfwTerminate();
 }
 
+void Application::Loop()
+{
+    glfwSwapBuffers(mWindow);
+    glfwPollEvents();
+}
+
 void Application::ProcessInput() {}
 
 void Application::UpdateGame() {}
 
 void Application::GenerateOutput() {}
+
+bool Application::ShouldClose()
+{
+    return glfwWindowShouldClose(mWindow) == GLFW_TRUE;
+}
