@@ -1,33 +1,16 @@
-#include <GLFW/glfw3.h>
 #include <iostream>
+#include "Application.h"
 
 int main(int argc, char* argv[])
 {
-    // initialize glfw
-    if (glfwInit() == GLFW_FALSE)
+    Application app;
+    if (!app.Initialize())
     {
         return EXIT_FAILURE;
     }
 
-    // create window
-    GLFWwindow* window = glfwCreateWindow(640, 480, "WebGPU Ocean", nullptr, nullptr);
-    if (!window)
-    {
-        glfwTerminate();
-        return EXIT_FAILURE;
-    }
+    app.RunLoop();
 
-    glfwSwapInterval(1);
-
-    // game loop
-    while (glfwWindowShouldClose(window) == GLFW_FALSE)
-    {
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-
-    // terminate glfw
-    glfwTerminate();
-
+    app.Shutdown();
     return 0;
 }
