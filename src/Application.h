@@ -1,5 +1,7 @@
 #pragma once
 
+#include <webgpu/webgpu_cpp.h>
+
 #include <GLFW/glfw3.h>
 
 #ifdef __EMSCRIPTEN__
@@ -27,4 +29,7 @@ private:
 
 private:
     GLFWwindow* mWindow;
+    wgpu::Device mDevice   = nullptr;
+    wgpu::Queue mQueue     = nullptr;
+    wgpu::Surface mSurface = nullptr;
 };

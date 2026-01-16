@@ -24,12 +24,16 @@ else()
     find_package(glfw3 CONFIG REQUIRED)
 endif()
 
+find_package(Dawn REQUIRED)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
+
+add_subdirectory(external glfw3webgpu)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
@@ -40,8 +44,14 @@ add_executable(
 
 if (EMSCRIPTEN)
 
-    set(USE_FLAGS "-s USE_GLFW=3 --preload-file resources/")
+    set(USE_FLAGS "-s USE_GLFW=3 -s ASYNCIFY --preload-file resources/")
     set(CMAKE_CXX_FLAGS ${USE_FLAGS})
+
+    target_link_libraries(
+        main PRIVATE
+        dawn::webgpu_dawn
+        glfw3webgpu
+    )
 
     set_target_properties(main PROPERTIES SUFFIX ".html")
 
@@ -52,6 +62,8 @@ else()
     target_link_libraries(
         main PRIVATE
         glfw
+        dawn::webgpu_dawn
+        glfw3webgpu
     )
 
     add_custom_command(

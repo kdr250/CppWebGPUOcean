@@ -1,4 +1,3 @@
-#include <iostream>
 #include "Application.h"
 
 int main(int argc, char* argv[])
@@ -6,7 +5,7 @@ int main(int argc, char* argv[])
     Application app;
     if (!app.Initialize())
     {
-        return EXIT_FAILURE;
+        return 1;
     }
 
     app.RunLoop();
