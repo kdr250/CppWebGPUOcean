@@ -1,6 +1,28 @@
 cmake_minimum_required(VERSION 3.19)
 
+if (APPLE AND DEFINED ENV{RPATH})
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+    set(CMAKE_INSTALL_RPATH $ENV{RPATH})
+endif()
+
+if (DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE})
+endif()
+
+if (DEFINED ENV{VCPKG_ROOT})
+    cmake_path(SET VCPKG_PATH NORMALIZE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
+    set(CMAKE_TOOLCHAIN_FILE ${VCPKG_PATH})
+else()
+    message(FATAL_ERROR "Please install vcpkg and set 'VCPKG_ROOT' environmental variable")    
+endif()
+
 project(main VERSION 1.0)
+
+if (EMSCRIPTEN)
+    set(VCPKG_TARGET_TRIPLET "wasm32-emscripten")
+else()
+    find_package(glfw3 CONFIG REQUIRED)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
@@ -21,12 +43,18 @@ if (EMSCRIPTEN)
     target_compile_options(
         main PRIVATE
         --preload-file resources/
+        -sUSE_GLFW=3
     )
     set_target_properties(main PROPERTIES SUFFIX ".html")
 
     file(COPY ${PROJECT_SOURCE_DIR}/resources DESTINATION ${CMAKE_BINARY_DIR})
 
 else()
+
+    target_link_libraries(
+        main PRIVATE
+        glfw
+    )
 
     add_custom_command(
         TARGET main POST_BUILD
