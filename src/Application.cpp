@@ -82,6 +82,27 @@ bool Application::Initialize()
     WebGPUUtils::InspectDevice(mDevice);
 
     mQueue = mDevice.GetQueue();
+
+    // Configure the surface
+    wgpu::SurfaceConfiguration config {
+        .nextInChain = nullptr,
+
+        // Configuration of the textures created for the underlying swap chain
+        .width  = 640,
+        .height = 480,
+        .usage  = wgpu::TextureUsage::RenderAttachment,
+        .format = WebGPUUtils::GetTextureFormat(mSurface, adapter),
+
+        // And we do not need any particular view format:
+        .viewFormatCount = 0,
+        .viewFormats     = nullptr,
+        .device          = mDevice,
+        .presentMode     = wgpu::PresentMode::Fifo,
+        .alphaMode       = wgpu::CompositeAlphaMode::Auto,
+    };
+
+    mSurface.Configure(&config);
+
     return true;
 }
 
@@ -115,8 +136,60 @@ void Application::Shutdown()
 
 void Application::Loop()
 {
-    glfwSwapBuffers(mWindow);
     glfwPollEvents();
+
+    // Get the next target texture view
+    wgpu::TextureView targetView = GetNextSurfaceTextureView();
+    if (!targetView)
+    {
+        return;
+    }
+
+    // Create a command encoder for the draw call
+    wgpu::CommandEncoderDescriptor encoderDesc {
+        .nextInChain = nullptr,
+        .label       = WebGPUUtils::GenerateString("My command encoder"),
+    };
+    wgpu::CommandEncoder encoder = mDevice.CreateCommandEncoder(&encoderDesc);
+
+    // Create the render pass that clears the screen with our color
+    wgpu::RenderPassDescriptor renderPassDesc {
+        .nextInChain = nullptr,
+        .label       = WebGPUUtils::GenerateString("Render Pass"),
+    };
+
+    // The attachment part of the render pass descriptor describes the target texture of the pass
+    wgpu::RenderPassColorAttachment renderPassColorAttachment {
+        .view          = targetView,
+        .resolveTarget = nullptr,
+        .loadOp        = wgpu::LoadOp::Clear,
+        .storeOp       = wgpu::StoreOp::Store,
+        .clearValue    = wgpu::Color {0.2, 1.0, 0.2, 1.0},
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+    };
+
+    renderPassDesc.colorAttachmentCount   = 1;
+    renderPassDesc.colorAttachments       = &renderPassColorAttachment;
+    renderPassDesc.depthStencilAttachment = nullptr;
+    renderPassDesc.timestampWrites        = nullptr;
+
+    // Create the render pass and end it immediately (we only clear the screen but do not draw anything)
+    wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
+    renderPass.End();
+
+    // Finally encode and submit the render pass
+    wgpu::CommandBufferDescriptor cmdBufferDescriptor {
+        .nextInChain = nullptr,
+        .label       = WebGPUUtils::GenerateString("Command buffer"),
+    };
+    wgpu::CommandBuffer command = encoder.Finish(&cmdBufferDescriptor);
+
+    mQueue.Submit(1, &command);
+
+#ifndef __EMSCRIPTEN__
+    mSurface.Present();
+    mDevice.Tick();
+#endif
 }
 
 void Application::ProcessInput() {}
@@ -124,6 +197,36 @@ void Application::ProcessInput() {}
 void Application::UpdateGame() {}
 
 void Application::GenerateOutput() {}
+
+wgpu::TextureView Application::GetNextSurfaceTextureView()
+{
+    // Get the surface texture
+    wgpu::SurfaceTexture surfaceTexture;
+    mSurface.GetCurrentTexture(&surfaceTexture);
+    if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal
+        && surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessSuboptimal)
+    {
+        return nullptr;
+    }
+
+    // Create a view for this surface texture
+    wgpu::TextureViewDescriptor viewDescriptor {
+        .nextInChain     = nullptr,
+        .label           = WebGPUUtils::GenerateString("Surface texture view"),
+        .usage           = wgpu::TextureUsage::RenderAttachment,
+        .format          = surfaceTexture.texture.GetFormat(),
+        .dimension       = wgpu::TextureViewDimension::e2D,
+        .baseMipLevel    = 0,
+        .mipLevelCount   = 1,
+        .baseArrayLayer  = 0,
+        .arrayLayerCount = 1,
+        .aspect          = wgpu::TextureAspect::All,
+    };
+
+    wgpu::TextureView targetView = surfaceTexture.texture.CreateView(&viewDescriptor);
+
+    return targetView;
+}
 
 bool Application::ShouldClose()
 {

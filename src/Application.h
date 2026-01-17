@@ -25,6 +25,8 @@ private:
     void UpdateGame();
     void GenerateOutput();
 
+    wgpu::TextureView GetNextSurfaceTextureView();
+
     bool ShouldClose();
 
 private:
