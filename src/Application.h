@@ -1,8 +1,10 @@
 #pragma once
 
 #include <webgpu/webgpu_cpp.h>
-
 #include <GLFW/glfw3.h>
+#include <memory>
+
+#include "FluidRenderer.h"
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -19,8 +21,6 @@ public:
     void Shutdown();
 
 private:
-    void InitializePipeline();
-
     void Loop();
 
     void ProcessInput();
@@ -38,4 +38,6 @@ private:
     wgpu::Surface mSurface             = nullptr;
     wgpu::TextureFormat mSurfaceFormat = wgpu::TextureFormat::Undefined;
     wgpu::RenderPipeline mPipeline     = nullptr;
+
+    std::unique_ptr<FluidRenderer> mFluidRenderer;
 };

@@ -106,7 +106,7 @@ bool Application::Initialize()
 
     mSurface.Configure(&config);
 
-    InitializePipeline();
+    mFluidRenderer = std::make_unique<FluidRenderer>(mDevice, 640, 480, mSurfaceFormat);
 
     return true;
 }
@@ -139,81 +139,24 @@ void Application::Shutdown()
     glfwTerminate();
 }
 
-void Application::InitializePipeline()
+void Application::Loop()
 {
-    // Load the shader module
-    wgpu::ShaderModule shaderModule =
-        ResourceManager::LoadShaderModule("resources/shader/test.wgsl", mDevice);
-
-    // Create the render pipeline
-    wgpu::RenderPipelineDescriptor pipelineDesc {
-        .vertex =
-            {
-                .bufferCount   = 0,
-                .buffers       = nullptr,
-                .module        = shaderModule,
-                .entryPoint    = "vs_main",
-                .constantCount = 0,
-                .constants     = nullptr,
-            },
-        .primitive =
-            {
-                .topology         = wgpu::PrimitiveTopology::TriangleList,
-                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
-                .frontFace        = wgpu::FrontFace::CCW,
-                .cullMode         = wgpu::CullMode::None,
-            },
-    };
-
-    wgpu::FragmentState fragmentState {
-        .module        = shaderModule,
-        .entryPoint    = "fs_main",
-        .constantCount = 0,
-        .constants     = nullptr,
-    };
-
-    wgpu::BlendState blendState {
-        .color =
-            {
-                .srcFactor = wgpu::BlendFactor::SrcAlpha,
-                .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-                .operation = wgpu::BlendOperation::Add,
-            },
-        .alpha =
-            {
-                .srcFactor = wgpu::BlendFactor::Zero,
-                .dstFactor = wgpu::BlendFactor::One,
-                .operation = wgpu::BlendOperation::Add,
-            },
-    };
-
-    wgpu::ColorTargetState colorTarget {
-        .format    = mSurfaceFormat,
-        .blend     = &blendState,
-        .writeMask = wgpu::ColorWriteMask::All,
-    };
-
-    fragmentState.targetCount = 1;
-    fragmentState.targets     = &colorTarget;
-
-    pipelineDesc.fragment = &fragmentState;
-
-    pipelineDesc.depthStencil = nullptr;
-
-    // Samples per pixel
-    pipelineDesc.multisample.count = 1;
-
-    // Default value for the mask, meaning "all bits on"
-    pipelineDesc.multisample.mask = ~0u;
-
-    // Default value as well (irrelevant for count = 1 anyways)
-    pipelineDesc.multisample.alphaToCoverageEnabled = false;
-    pipelineDesc.layout                             = nullptr;
-
-    mPipeline = mDevice.CreateRenderPipeline(&pipelineDesc);
+    ProcessInput();
+    UpdateGame();
+    GenerateOutput();
 }
 
-void Application::Loop()
+void Application::ProcessInput()
+{
+    // TODO
+}
+
+void Application::UpdateGame()
+{
+    // TODO
+}
+
+void Application::GenerateOutput()
 {
     glfwPollEvents();
 
@@ -229,45 +172,16 @@ void Application::Loop()
         .nextInChain = nullptr,
         .label       = WebGPUUtils::GenerateString("My command encoder"),
     };
-    wgpu::CommandEncoder encoder = mDevice.CreateCommandEncoder(&encoderDesc);
+    wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
-    // Create the render pass that clears the screen with our color
-    wgpu::RenderPassDescriptor renderPassDesc {
-        .nextInChain = nullptr,
-        .label       = WebGPUUtils::GenerateString("Render Pass"),
-    };
-
-    // The attachment part of the render pass descriptor describes the target texture of the pass
-    wgpu::RenderPassColorAttachment renderPassColorAttachment {
-        .view          = targetView,
-        .resolveTarget = nullptr,
-        .loadOp        = wgpu::LoadOp::Clear,
-        .storeOp       = wgpu::StoreOp::Store,
-        .clearValue    = wgpu::Color {0.2, 1.0, 0.2, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
-    };
-
-    renderPassDesc.colorAttachmentCount   = 1;
-    renderPassDesc.colorAttachments       = &renderPassColorAttachment;
-    renderPassDesc.depthStencilAttachment = nullptr;
-    renderPassDesc.timestampWrites        = nullptr;
-
-    // Create the render pass and end it immediately (we only clear the screen but do not draw anything)
-    wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
-
-    // Select which render pipeline to use
-    renderPass.SetPipeline(mPipeline);
-    // Draw 1 instance of a 3-vertices shape
-    renderPass.Draw(3, 1, 0, 0);
-
-    renderPass.End();
+    mFluidRenderer->Draw(commandEncoder, targetView);
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {
         .nextInChain = nullptr,
         .label       = WebGPUUtils::GenerateString("Command buffer"),
     };
-    wgpu::CommandBuffer command = encoder.Finish(&cmdBufferDescriptor);
+    wgpu::CommandBuffer command = commandEncoder.Finish(&cmdBufferDescriptor);
 
     mQueue.Submit(1, &command);
 
@@ -276,12 +190,6 @@ void Application::Loop()
     mDevice.Tick();
 #endif
 }
-
-void Application::ProcessInput() {}
-
-void Application::UpdateGame() {}
-
-void Application::GenerateOutput() {}
 
 wgpu::TextureView Application::GetNextSurfaceTextureView()
 {
