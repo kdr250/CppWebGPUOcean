@@ -191,10 +191,11 @@ void Application::GenerateOutput()
     };
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
-    int t    = static_cast<int>(glfwGetTime());  // glfwGetTime returns a double
-    t        = t % 10;
-    float tt = (float)t / 10.0f;
-    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &tt, sizeof(float));
+    float t = static_cast<float>(glfwGetTime());  // glfwGetTime returns a double
+    t       = std::fmodf(t, 5.0f);
+    t /= 5.0f;
+    std::cout << "t = " << t << std::endl;
+    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &t, sizeof(float));
 
     mFluidRenderer->Draw(commandEncoder, targetView);
 

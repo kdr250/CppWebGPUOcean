@@ -2,7 +2,7 @@
 
 @vertex
 fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> @builtin(position) vec4f {
-	var offset = uTime / 10.0;
+	var offset = uTime;
 	var p = vec2f(0.0 + offset, 0.0);
 	if (in_vertex_index == 0u) {
 		p = vec2f(-0.5 + offset, -0.5);
