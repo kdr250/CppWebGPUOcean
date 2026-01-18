@@ -107,12 +107,7 @@ bool Application::Initialize()
 
     mSurface.Configure(&config);
 
-    wgpu::BufferDescriptor renderUniformBufferDesc {
-        .size             = 4 * sizeof(float),
-        .usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
-        .mappedAtCreation = false,
-    };
-    mRenderUniformBuffer = mDevice.CreateBuffer(&renderUniformBufferDesc);
+    InitializeBuffers();
 
     float t = 0.0;
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &t, sizeof(float));
@@ -153,7 +148,12 @@ void Application::Shutdown()
 
 void Application::InitializeBuffers()
 {
-    // TODO
+    wgpu::BufferDescriptor renderUniformBufferDesc {
+        .size             = 4 * sizeof(float),
+        .usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
+        .mappedAtCreation = false,
+    };
+    mRenderUniformBuffer = mDevice.CreateBuffer(&renderUniformBufferDesc);
 }
 
 void Application::Loop()
