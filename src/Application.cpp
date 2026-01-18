@@ -50,7 +50,8 @@ bool Application::Initialize()
     deviceDesc.nextInChain              = nullptr;
     deviceDesc.label                    = WebGPUUtils::GenerateString("My Device");
     deviceDesc.requiredFeatureCount     = 0;
-    deviceDesc.requiredLimits           = nullptr;  // TODO
+    wgpu::Limits requiredLimits         = GetRequiredLimits(adapter);
+    deviceDesc.requiredLimits           = &requiredLimits;
     deviceDesc.defaultQueue.nextInChain = nullptr;
     deviceDesc.defaultQueue.label       = WebGPUUtils::GenerateString("The default queue");
 
@@ -106,7 +107,18 @@ bool Application::Initialize()
 
     mSurface.Configure(&config);
 
-    mFluidRenderer = std::make_unique<FluidRenderer>(mDevice, 640, 480, mSurfaceFormat);
+    wgpu::BufferDescriptor renderUniformBufferDesc {
+        .size             = 4 * sizeof(float),
+        .usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
+        .mappedAtCreation = false,
+    };
+    mRenderUniformBuffer = mDevice.CreateBuffer(&renderUniformBufferDesc);
+
+    float t = 0.0;
+    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &t, sizeof(float));
+
+    mFluidRenderer =
+        std::make_unique<FluidRenderer>(mDevice, 640, 480, mSurfaceFormat, mRenderUniformBuffer);
 
     return true;
 }
@@ -137,6 +149,11 @@ void Application::Shutdown()
 {
     glfwDestroyWindow(mWindow);
     glfwTerminate();
+}
+
+void Application::InitializeBuffers()
+{
+    // TODO
 }
 
 void Application::Loop()
@@ -173,6 +190,11 @@ void Application::GenerateOutput()
         .label       = WebGPUUtils::GenerateString("My command encoder"),
     };
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
+
+    int t    = static_cast<int>(glfwGetTime());  // glfwGetTime returns a double
+    t        = t % 10;
+    float tt = (float)t / 10.0f;
+    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &tt, sizeof(float));
 
     mFluidRenderer->Draw(commandEncoder, targetView);
 
@@ -219,6 +241,28 @@ wgpu::TextureView Application::GetNextSurfaceTextureView()
     wgpu::TextureView targetView = surfaceTexture.texture.CreateView(&viewDescriptor);
 
     return targetView;
+}
+
+wgpu::Limits Application::GetRequiredLimits(wgpu::Adapter adapter) const
+{
+    // Get adapter supported limits, in case we need them
+    wgpu::Limits supportedLimits;
+    supportedLimits.nextInChain = nullptr;
+    adapter.GetLimits(&supportedLimits);
+
+    return supportedLimits;
+
+    // wgpu::Limits requiredLimits {};
+    // WebGPUUtils::SetDefaultLimits(requiredLimits);
+
+    // requiredLimits.maxStorageBufferBindingSize = supportedLimits.maxStorageBufferBindingSize;
+
+    // requiredLimits.minUniformBufferOffsetAlignment =
+    //     supportedLimits.minUniformBufferOffsetAlignment;
+    // requiredLimits.minStorageBufferOffsetAlignment =
+    //     supportedLimits.minStorageBufferOffsetAlignment;
+
+    // return requiredLimits;
 }
 
 bool Application::ShouldClose()

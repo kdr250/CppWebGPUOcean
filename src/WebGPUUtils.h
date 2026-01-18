@@ -32,6 +32,12 @@ namespace WebGPUUtils
      */
     wgpu::TextureFormat GetTextureFormat(wgpu::Surface surface, wgpu::Adapter adapter);
 
+    /**
+     * Set default values
+     */
+    void SetDefaultLimits(wgpu::Limits& limits);
+    void SetDefaultBindGroupLayout(wgpu::BindGroupLayoutEntry& bindingLayout);
+
     inline wgpu::StringView GenerateString(const char* str)
     {
         return {str, strlen(str)};

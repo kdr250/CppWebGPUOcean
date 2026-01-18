@@ -21,6 +21,8 @@ public:
     void Shutdown();
 
 private:
+    void InitializeBuffers();
+
     void Loop();
 
     void ProcessInput();
@@ -28,6 +30,8 @@ private:
     void GenerateOutput();
 
     wgpu::TextureView GetNextSurfaceTextureView();
+
+    wgpu::Limits GetRequiredLimits(wgpu::Adapter adapter) const;
 
     bool ShouldClose();
 
@@ -37,7 +41,8 @@ private:
     wgpu::Queue mQueue                 = nullptr;
     wgpu::Surface mSurface             = nullptr;
     wgpu::TextureFormat mSurfaceFormat = wgpu::TextureFormat::Undefined;
-    wgpu::RenderPipeline mPipeline     = nullptr;
 
     std::unique_ptr<FluidRenderer> mFluidRenderer;
+
+    wgpu::Buffer mRenderUniformBuffer;
 };
