@@ -194,7 +194,6 @@ void Application::GenerateOutput()
     float t = static_cast<float>(glfwGetTime());  // glfwGetTime returns a double
     t       = std::fmodf(t, 5.0f);
     t /= 5.0f;
-    std::cout << "t = " << t << std::endl;
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &t, sizeof(float));
 
     mFluidRenderer->Draw(commandEncoder, targetView);
