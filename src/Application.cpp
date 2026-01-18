@@ -4,27 +4,7 @@
 #include <iostream>
 
 #include "WebGPUUtils.h"
-
-// We embbed the source of the shader module here
-const char* shaderSource = R"(
-@vertex
-fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> @builtin(position) vec4f {
-	var p = vec2f(0.0, 0.0);
-	if (in_vertex_index == 0u) {
-		p = vec2f(-0.5, -0.5);
-	} else if (in_vertex_index == 1u) {
-		p = vec2f(0.5, -0.5);
-	} else {
-		p = vec2f(0.0, 0.5);
-	}
-	return vec4f(p, 0.0, 1.0);
-}
-
-@fragment
-fn fs_main() -> @location(0) vec4f {
-	return vec4f(0.0, 0.4, 1.0, 1.0);
-}
-)";
+#include "ResourceManager.h"
 
 Application::Application() : mWindow(nullptr) {}
 
@@ -162,16 +142,8 @@ void Application::Shutdown()
 void Application::InitializePipeline()
 {
     // Load the shader module
-    wgpu::ShaderSourceWGSL shaderCodeDesc;
-    shaderCodeDesc.nextInChain = nullptr;
-    shaderCodeDesc.sType       = wgpu::SType::ShaderSourceWGSL;
-    shaderCodeDesc.code        = WebGPUUtils::GenerateString(shaderSource);
-
-    wgpu::ShaderModuleDescriptor shaderDesc {
-        .nextInChain = &shaderCodeDesc,
-    };
-
-    wgpu::ShaderModule shaderModule = mDevice.CreateShaderModule(&shaderDesc);
+    wgpu::ShaderModule shaderModule =
+        ResourceManager::LoadShaderModule("resources/shader/test.wgsl", mDevice);
 
     // Create the render pipeline
     wgpu::RenderPipelineDescriptor pipelineDesc {
