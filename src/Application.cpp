@@ -5,6 +5,27 @@
 
 #include "WebGPUUtils.h"
 
+// We embbed the source of the shader module here
+const char* shaderSource = R"(
+@vertex
+fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> @builtin(position) vec4f {
+	var p = vec2f(0.0, 0.0);
+	if (in_vertex_index == 0u) {
+		p = vec2f(-0.5, -0.5);
+	} else if (in_vertex_index == 1u) {
+		p = vec2f(0.5, -0.5);
+	} else {
+		p = vec2f(0.0, 0.5);
+	}
+	return vec4f(p, 0.0, 1.0);
+}
+
+@fragment
+fn fs_main() -> @location(0) vec4f {
+	return vec4f(0.0, 0.4, 1.0, 1.0);
+}
+)";
+
 Application::Application() : mWindow(nullptr) {}
 
 bool Application::Initialize()
@@ -83,6 +104,8 @@ bool Application::Initialize()
 
     mQueue = mDevice.GetQueue();
 
+    mSurfaceFormat = WebGPUUtils::GetTextureFormat(mSurface, adapter);
+
     // Configure the surface
     wgpu::SurfaceConfiguration config {
         .nextInChain = nullptr,
@@ -91,7 +114,7 @@ bool Application::Initialize()
         .width  = 640,
         .height = 480,
         .usage  = wgpu::TextureUsage::RenderAttachment,
-        .format = WebGPUUtils::GetTextureFormat(mSurface, adapter),
+        .format = mSurfaceFormat,
 
         // And we do not need any particular view format:
         .viewFormatCount = 0,
@@ -102,6 +125,8 @@ bool Application::Initialize()
     };
 
     mSurface.Configure(&config);
+
+    InitializePipeline();
 
     return true;
 }
@@ -132,6 +157,88 @@ void Application::Shutdown()
 {
     glfwDestroyWindow(mWindow);
     glfwTerminate();
+}
+
+void Application::InitializePipeline()
+{
+    // Load the shader module
+    wgpu::ShaderSourceWGSL shaderCodeDesc;
+    shaderCodeDesc.nextInChain = nullptr;
+    shaderCodeDesc.sType       = wgpu::SType::ShaderSourceWGSL;
+    shaderCodeDesc.code        = WebGPUUtils::GenerateString(shaderSource);
+
+    wgpu::ShaderModuleDescriptor shaderDesc {
+        .nextInChain = &shaderCodeDesc,
+    };
+
+    wgpu::ShaderModule shaderModule = mDevice.CreateShaderModule(&shaderDesc);
+
+    // Create the render pipeline
+    wgpu::RenderPipelineDescriptor pipelineDesc {
+        .vertex =
+            {
+                .bufferCount   = 0,
+                .buffers       = nullptr,
+                .module        = shaderModule,
+                .entryPoint    = "vs_main",
+                .constantCount = 0,
+                .constants     = nullptr,
+            },
+        .primitive =
+            {
+                .topology         = wgpu::PrimitiveTopology::TriangleList,
+                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
+                .frontFace        = wgpu::FrontFace::CCW,
+                .cullMode         = wgpu::CullMode::None,
+            },
+    };
+
+    wgpu::FragmentState fragmentState {
+        .module        = shaderModule,
+        .entryPoint    = "fs_main",
+        .constantCount = 0,
+        .constants     = nullptr,
+    };
+
+    wgpu::BlendState blendState {
+        .color =
+            {
+                .srcFactor = wgpu::BlendFactor::SrcAlpha,
+                .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
+                .operation = wgpu::BlendOperation::Add,
+            },
+        .alpha =
+            {
+                .srcFactor = wgpu::BlendFactor::Zero,
+                .dstFactor = wgpu::BlendFactor::One,
+                .operation = wgpu::BlendOperation::Add,
+            },
+    };
+
+    wgpu::ColorTargetState colorTarget {
+        .format    = mSurfaceFormat,
+        .blend     = &blendState,
+        .writeMask = wgpu::ColorWriteMask::All,
+    };
+
+    fragmentState.targetCount = 1;
+    fragmentState.targets     = &colorTarget;
+
+    pipelineDesc.fragment = &fragmentState;
+
+    pipelineDesc.depthStencil = nullptr;
+
+    // Samples per pixel
+    pipelineDesc.multisample.count = 1;
+
+    // Default value for the mask, meaning "all bits on"
+    pipelineDesc.multisample.mask = ~0u;
+
+    // Default value as well (irrelevant for count = 1 anyways)
+    pipelineDesc.multisample.alphaToCoverageEnabled = false;
+    pipelineDesc.layout                             = nullptr;
+
+    mPipeline = mDevice.CreateRenderPipeline(&pipelineDesc);
 }
 
 void Application::Loop()
@@ -175,6 +282,12 @@ void Application::Loop()
 
     // Create the render pass and end it immediately (we only clear the screen but do not draw anything)
     wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
+
+    // Select which render pipeline to use
+    renderPass.SetPipeline(mPipeline);
+    // Draw 1 instance of a 3-vertices shape
+    renderPass.Draw(3, 1, 0, 0);
+
     renderPass.End();
 
     // Finally encode and submit the render pass

@@ -19,6 +19,8 @@ public:
     void Shutdown();
 
 private:
+    void InitializePipeline();
+
     void Loop();
 
     void ProcessInput();
@@ -31,7 +33,9 @@ private:
 
 private:
     GLFWwindow* mWindow;
-    wgpu::Device mDevice   = nullptr;
-    wgpu::Queue mQueue     = nullptr;
-    wgpu::Surface mSurface = nullptr;
+    wgpu::Device mDevice               = nullptr;
+    wgpu::Queue mQueue                 = nullptr;
+    wgpu::Surface mSurface             = nullptr;
+    wgpu::TextureFormat mSurfaceFormat = wgpu::TextureFormat::Undefined;
+    wgpu::RenderPipeline mPipeline     = nullptr;
 };
