@@ -14,6 +14,10 @@ public:
     void Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView);
 
 private:
+    void InitializeFluidPipelines(wgpu::TextureFormat presentationFormat);
+    void InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer);
+
+private:
     wgpu::Device mDevice;
 
     wgpu::PipelineLayout mFluidLayout;

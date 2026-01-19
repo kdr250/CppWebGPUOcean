@@ -9,6 +9,46 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
                              wgpu::TextureFormat presentationFormat,
                              wgpu::Buffer renderUniformBuffer) : mDevice(device)
 {
+    InitializeFluidPipelines(presentationFormat);
+    InitializeFluidBindGroups(renderUniformBuffer);
+}
+
+void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView)
+{
+    // The attachment part of the render pass descriptor describes the target texture of the pass
+    wgpu::RenderPassColorAttachment renderPassColorAttachment {
+        .view          = targetView,
+        .resolveTarget = nullptr,
+        .loadOp        = wgpu::LoadOp::Clear,
+        .storeOp       = wgpu::StoreOp::Store,
+        .clearValue    = wgpu::Color {0.2, 1.0, 0.2, 1.0},
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+    };
+
+    // Create the render pass that clears the screen with our color
+    wgpu::RenderPassDescriptor renderPassDesc {
+        .nextInChain            = nullptr,
+        .label                  = WebGPUUtils::GenerateString("Render Pass"),
+        .colorAttachmentCount   = 1,
+        .colorAttachments       = &renderPassColorAttachment,
+        .depthStencilAttachment = nullptr,
+        .timestampWrites        = nullptr,
+    };
+
+    // Create the render pass and end it immediately (we only clear the screen but do not draw anything)
+    wgpu::RenderPassEncoder renderPass = commandEncoder.BeginRenderPass(&renderPassDesc);
+
+    // Select which render pipeline to use
+    renderPass.SetPipeline(mFluidPipeline);
+    renderPass.SetBindGroup(0, mFluidBindGroup, 0, nullptr);
+    // Draw 1 instance of a 3-vertices shape
+    renderPass.Draw(3, 1, 0, 0);
+
+    renderPass.End();
+}
+
+void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat)
+{
     // shader module
     wgpu::ShaderModule testModule =
         ResourceManager::LoadShaderModule("resources/shader/test.wgsl", mDevice);
@@ -95,8 +135,10 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     renderPipelineDesc.fragment = &fragmentState;
 
     mFluidPipeline = mDevice.CreateRenderPipeline(&renderPipelineDesc);
+}
 
-    // Create a binding
+void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
+{
     wgpu::BindGroupEntry fluidBinding {
         .binding = 0,
         .buffer  = renderUniformBuffer,
@@ -111,38 +153,4 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
         .entries    = &fluidBinding,
     };
     mFluidBindGroup = mDevice.CreateBindGroup(&fluidBindGroupDesc);
-}
-
-void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView)
-{
-    // The attachment part of the render pass descriptor describes the target texture of the pass
-    wgpu::RenderPassColorAttachment renderPassColorAttachment {
-        .view          = targetView,
-        .resolveTarget = nullptr,
-        .loadOp        = wgpu::LoadOp::Clear,
-        .storeOp       = wgpu::StoreOp::Store,
-        .clearValue    = wgpu::Color {0.2, 1.0, 0.2, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
-    };
-
-    // Create the render pass that clears the screen with our color
-    wgpu::RenderPassDescriptor renderPassDesc {
-        .nextInChain            = nullptr,
-        .label                  = WebGPUUtils::GenerateString("Render Pass"),
-        .colorAttachmentCount   = 1,
-        .colorAttachments       = &renderPassColorAttachment,
-        .depthStencilAttachment = nullptr,
-        .timestampWrites        = nullptr,
-    };
-
-    // Create the render pass and end it immediately (we only clear the screen but do not draw anything)
-    wgpu::RenderPassEncoder renderPass = commandEncoder.BeginRenderPass(&renderPassDesc);
-
-    // Select which render pipeline to use
-    renderPass.SetPipeline(mFluidPipeline);
-    renderPass.SetBindGroup(0, mFluidBindGroup, 0, nullptr);
-    // Draw 1 instance of a 3-vertices shape
-    renderPass.Draw(3, 1, 0, 0);
-
-    renderPass.End();
 }
