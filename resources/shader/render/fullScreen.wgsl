@@ -10,7 +10,7 @@ struct VertexOutput {
 fn vs(@builtin(vertex_index) vertex_index : u32) -> VertexOutput {
     var out: VertexOutput;
 
-    var pos = array(
+    let pos = array(
         vec2( 1.0,  1.0),
         vec2( 1.0, -1.0),
         vec2(-1.0, -1.0),
@@ -19,7 +19,7 @@ fn vs(@builtin(vertex_index) vertex_index : u32) -> VertexOutput {
         vec2(-1.0,  1.0),
     );
 
-    var uv = array(
+    let uv = array(
         vec2(1.0, 0.0),
         vec2(1.0, 1.0),
         vec2(0.0, 1.0),

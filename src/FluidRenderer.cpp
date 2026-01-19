@@ -42,7 +42,7 @@ void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView
     renderPass.SetPipeline(mFluidPipeline);
     renderPass.SetBindGroup(0, mFluidBindGroup, 0, nullptr);
     // Draw 1 instance of a 3-vertices shape
-    renderPass.Draw(3, 1, 0, 0);
+    renderPass.Draw(6, 1, 0, 0);
 
     renderPass.End();
 }
@@ -56,17 +56,27 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
         ResourceManager::LoadShaderModule("resources/shader/render/fluid.wgsl", mDevice);
 
     // Create bind group entry
-    wgpu::BindGroupLayoutEntry fluidBindingLayoutEentry {};
-    WebGPUUtils::SetDefaultBindGroupLayout(fluidBindingLayoutEentry);
-    fluidBindingLayoutEentry.binding     = 0;
-    fluidBindingLayoutEentry.visibility  = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
-    fluidBindingLayoutEentry.buffer.type = wgpu::BufferBindingType::Uniform;
-    fluidBindingLayoutEentry.buffer.minBindingSize = sizeof(glm::vec2);
+    std::vector<wgpu::BindGroupLayoutEntry> fluidBindingLayoutEentries(2);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout = fluidBindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
+    bindingLayout.binding               = 0;
+    bindingLayout.visibility            = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
+    bindingLayout.buffer.type           = wgpu::BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(glm::vec2);
+    // The texture binding
+    wgpu::BindGroupLayoutEntry& textureBindingLayout = fluidBindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(textureBindingLayout);
+    textureBindingLayout.binding               = 1;
+    textureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
+    textureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::Float;
+    textureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::e2D;
 
     // Create a bind group layout
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
-    bindGroupLayoutDesc.entryCount = 1;
-    bindGroupLayoutDesc.entries    = &fluidBindingLayoutEentry;
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(fluidBindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = fluidBindingLayoutEentries.data();
     mFluidBindGroupLayout          = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
 
     // Create the pipeline layout
@@ -141,18 +151,25 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
 
 void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
 {
-    wgpu::BindGroupEntry fluidBinding {
-        .binding = 0,
-        .buffer  = renderUniformBuffer,
-        .offset  = 0,
-        .size    = sizeof(glm::vec2),
-    };
+    // FIXME
+    wgpu::TextureView textureView {};
+    ResourceManager::LoadTexture("resources/texture/test.png", mDevice, &textureView);
+
+    std::vector<wgpu::BindGroupEntry> bindings(2);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = renderUniformBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = sizeof(glm::vec2);
+
+    bindings[1].binding     = 1;
+    bindings[1].textureView = textureView;
 
     wgpu::BindGroupDescriptor fluidBindGroupDesc {
         .label      = WebGPUUtils::GenerateString("fluid bind group"),
         .layout     = mFluidBindGroupLayout,
-        .entryCount = 1,
-        .entries    = &fluidBinding,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
     };
     mFluidBindGroup = mDevice.CreateBindGroup(&fluidBindGroupDesc);
 }

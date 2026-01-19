@@ -7,9 +7,6 @@
         },
         "dawn",
         "glm",
-        {
-            "name": "stb",
-            "platform": "!wasm32"
-        }
+        "stb"
     ]
 }
