@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 
+#include "Application.h"
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
 
@@ -60,11 +61,10 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     // The uniform buffer binding
     wgpu::BindGroupLayoutEntry& bindingLayout = fluidBindingLayoutEentries[0];
     WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
-    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
     bindingLayout.binding               = 0;
     bindingLayout.visibility            = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
     bindingLayout.buffer.type           = wgpu::BufferBindingType::Uniform;
-    bindingLayout.buffer.minBindingSize = sizeof(glm::vec2);
+    bindingLayout.buffer.minBindingSize = sizeof(RenderUniforms);
     // The texture binding
     wgpu::BindGroupLayoutEntry& textureBindingLayout = fluidBindingLayoutEentries[1];
     WebGPUUtils::SetDefaultBindGroupLayout(textureBindingLayout);
@@ -180,7 +180,7 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
     bindings[0].binding = 0;
     bindings[0].buffer  = renderUniformBuffer;
     bindings[0].offset  = 0;
-    bindings[0].size    = sizeof(glm::vec2);
+    bindings[0].size    = sizeof(RenderUniforms);
 
     bindings[1].binding     = 1;
     bindings[1].textureView = textureView;

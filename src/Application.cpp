@@ -115,8 +115,8 @@ bool Application::Initialize()
 
     InitializeBuffers();
 
-    glm::vec2 windowSize(640, 480);
-    mQueue.WriteBuffer(mRenderUniformBuffer, 0, glm::value_ptr(windowSize), sizeof(glm::vec2));
+    mRenderUniforms.screenSize = glm::vec2(640, 480);
+    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice, mSurfaceFormat, mRenderUniformBuffer);
 
@@ -154,7 +154,7 @@ void Application::Shutdown()
 void Application::InitializeBuffers()
 {
     wgpu::BufferDescriptor renderUniformBufferDesc {
-        .size             = sizeof(glm::vec2),
+        .size             = sizeof(RenderUniforms),
         .usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
         .mappedAtCreation = false,
     };

@@ -2,6 +2,7 @@
 
 #include <webgpu/webgpu_cpp.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include <memory>
 
 #include "FluidRenderer.h"
@@ -10,6 +11,19 @@
     #include <emscripten.h>
     #include <emscripten/html5.h>
 #endif
+
+struct RenderUniforms
+{
+    glm::vec2 screenSize;
+    glm::vec2 texelSize;
+    float sphereSize;
+    glm::mat4 invProjectionMatrix;
+    glm::mat4 projectionMatrix;
+    glm::mat4 viewMatrix;
+    glm::mat4 invViewMatrix;
+
+    float _padding[3];
+};
 
 class Application
 {
@@ -45,4 +59,5 @@ private:
     std::unique_ptr<FluidRenderer> mFluidRenderer;
 
     wgpu::Buffer mRenderUniformBuffer;
+    RenderUniforms mRenderUniforms;
 };
