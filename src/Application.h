@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "FluidRenderer.h"
+#include "Camera.h"
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -57,6 +58,7 @@ private:
     wgpu::TextureFormat mSurfaceFormat = wgpu::TextureFormat::Undefined;
 
     std::unique_ptr<FluidRenderer> mFluidRenderer;
+    std::unique_ptr<Camera> mCamera;
 
     wgpu::Buffer mRenderUniformBuffer;
     RenderUniforms mRenderUniforms;

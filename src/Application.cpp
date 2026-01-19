@@ -116,6 +116,16 @@ bool Application::Initialize()
     InitializeBuffers();
 
     mRenderUniforms.screenSize = glm::vec2(640, 480);
+
+    // FIXME
+    mCamera = std::make_unique<Camera>();
+    mCamera->Reset(mRenderUniforms,
+                   mRenderUniforms.screenSize,
+                   10.0f,
+                   glm::vec3(0.0f, 0.0f, 1.0f),
+                   45.0f * glm::pi<float>() / 180.0f,
+                   1.5f);
+
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice, mSurfaceFormat, mRenderUniformBuffer);

@@ -1,0 +1,57 @@
+#include "Camera.h"
+#include <glm/gtc/constants.hpp>
+#include <glm/ext.hpp>
+
+#include "Application.h"
+
+Camera::Camera()
+{
+    // TODO
+}
+
+void Camera::Reset(RenderUniforms& renderUniforms,
+                   glm::vec2 windowSize,
+                   float initDistance,
+                   glm::vec3 target,
+                   float fov,
+                   float zoomRate)
+{
+    this->isDragging      = false;
+    this->prevX           = 0;
+    this->prevY           = 0;
+    this->currentXTheta   = glm::pi<float>() / 4.0f;
+    this->currentYTheta   = -glm::pi<float>() / 12.0f;
+    this->maxYTheta       = 0;
+    this->minYTheta       = -0.99 * glm::pi<float>() / 2.0f;
+    this->sensitivity     = 0.005;
+    this->currentDistance = initDistance;
+    this->maxDistance     = 2. * this->currentDistance;
+    this->minDistance     = 0.3 * this->currentDistance;
+    this->target          = target;
+    this->fov             = fov;
+    this->zoomRate        = zoomRate;
+
+    float aspect    = windowSize.x / windowSize.y;
+    auto projection = glm::perspective(this->fov, aspect, 0.1f, 500.0f);
+
+    renderUniforms.projectionMatrix    = projection;
+    renderUniforms.invProjectionMatrix = glm::inverse(projection);
+
+    RecalculateView(renderUniforms);
+}
+
+void Camera::RecalculateView(RenderUniforms& renderUniforms)
+{
+    auto mat = glm::mat4(1.0f);
+    mat *= glm::translate(mat, this->target);
+    mat *= glm::rotate(mat, this->currentXTheta, glm::vec3(1.0f, 0.0f, 0.0f));
+    mat *= glm::rotate(mat, this->currentXTheta, glm::vec3(0.0f, 1.0f, 0.0f));
+    mat *= glm::translate(mat, glm::vec3(0.0f, 0.0f, this->currentDistance));
+
+    auto position = glm::vec3(mat[3]);
+
+    auto view = glm::lookAt(position, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    renderUniforms.viewMatrix    = view;
+    renderUniforms.invViewMatrix = glm::inverse(view);
+}
