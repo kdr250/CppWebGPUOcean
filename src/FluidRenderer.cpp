@@ -56,7 +56,7 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
         ResourceManager::LoadShaderModule("resources/shader/render/fluid.wgsl", mDevice);
 
     // Create bind group entry
-    std::vector<wgpu::BindGroupLayoutEntry> fluidBindingLayoutEentries(2);
+    std::vector<wgpu::BindGroupLayoutEntry> fluidBindingLayoutEentries(3);
     // The uniform buffer binding
     wgpu::BindGroupLayoutEntry& bindingLayout = fluidBindingLayoutEentries[0];
     WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
@@ -72,6 +72,12 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     textureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
     textureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::Float;
     textureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::e2D;
+    // The sampler binding
+    wgpu::BindGroupLayoutEntry& samplerBindingLayout = fluidBindingLayoutEentries[2];
+    WebGPUUtils::SetDefaultBindGroupLayout(samplerBindingLayout);
+    samplerBindingLayout.binding      = 2;
+    samplerBindingLayout.visibility   = wgpu::ShaderStage::Fragment;
+    samplerBindingLayout.sampler.type = wgpu::SamplerBindingType::Filtering;
 
     // Create a bind group layout
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
@@ -151,11 +157,25 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
 
 void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
 {
+    // Create a sampler
+    wgpu::SamplerDescriptor samplerDesc;
+    samplerDesc.addressModeU  = wgpu::AddressMode::Repeat;
+    samplerDesc.addressModeV  = wgpu::AddressMode::Repeat;
+    samplerDesc.addressModeW  = wgpu::AddressMode::ClampToEdge;
+    samplerDesc.magFilter     = wgpu::FilterMode::Linear;
+    samplerDesc.minFilter     = wgpu::FilterMode::Linear;
+    samplerDesc.mipmapFilter  = wgpu::MipmapFilterMode::Linear;
+    samplerDesc.lodMinClamp   = 0.0f;
+    samplerDesc.lodMaxClamp   = 8.0f;
+    samplerDesc.compare       = wgpu::CompareFunction::Undefined;
+    samplerDesc.maxAnisotropy = 1;
+    wgpu::Sampler sampler     = mDevice.CreateSampler(&samplerDesc);
+
     // FIXME
     wgpu::TextureView textureView {};
     ResourceManager::LoadTexture("resources/texture/test.png", mDevice, &textureView);
 
-    std::vector<wgpu::BindGroupEntry> bindings(2);
+    std::vector<wgpu::BindGroupEntry> bindings(3);
 
     bindings[0].binding = 0;
     bindings[0].buffer  = renderUniformBuffer;
@@ -164,6 +184,9 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
 
     bindings[1].binding     = 1;
     bindings[1].textureView = textureView;
+
+    bindings[2].binding = 2;
+    bindings[2].sampler = sampler;
 
     wgpu::BindGroupDescriptor fluidBindGroupDesc {
         .label      = WebGPUUtils::GenerateString("fluid bind group"),

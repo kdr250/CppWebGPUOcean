@@ -1,4 +1,5 @@
 @group(0) @binding(1) var texture: texture_2d<f32>;
+@group(0) @binding(2) var textureSampler: sampler;
 
 struct FragmentInput {
     @location(0) uv: vec2f,
@@ -7,7 +8,6 @@ struct FragmentInput {
 
 @fragment
 fn fs(input: FragmentInput) -> @location(0) vec4f {
-    let textureSize = 16.0; // FIXME
-    let color = textureLoad(texture, vec2<i32>(input.uv * textureSize), 0).rgb;
+    let color = textureSample(texture, textureSampler, input.uv).rgb;
     return vec4f(color, 1.0);
 }
