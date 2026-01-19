@@ -5,6 +5,7 @@
             "name": "glfw3",
             "platform": "!wasm32"
         },
-        "dawn"
+        "dawn",
+        "glm"
     ]
 }

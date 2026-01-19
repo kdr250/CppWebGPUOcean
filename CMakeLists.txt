@@ -25,6 +25,7 @@ else()
 endif()
 
 find_package(Dawn REQUIRED)
+find_package(glm CONFIG REQUIRED)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
@@ -50,6 +51,7 @@ if (EMSCRIPTEN)
     target_link_libraries(
         main PRIVATE
         dawn::webgpu_dawn
+        glm::glm
         glfw3webgpu
     )
 
@@ -63,6 +65,7 @@ else()
         main PRIVATE
         glfw
         dawn::webgpu_dawn
+        glm::glm
         glfw3webgpu
     )
 

@@ -4,8 +4,7 @@
 #include "ResourceManager.h"
 
 FluidRenderer::FluidRenderer(wgpu::Device device,
-                             int width,
-                             int height,
+                             const glm::vec2& windowSize,
                              wgpu::TextureFormat presentationFormat,
                              wgpu::Buffer renderUniformBuffer) : mDevice(device)
 {

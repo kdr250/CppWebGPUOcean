@@ -112,8 +112,10 @@ bool Application::Initialize()
     float t = 0.0;
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &t, sizeof(float));
 
-    mFluidRenderer =
-        std::make_unique<FluidRenderer>(mDevice, 640, 480, mSurfaceFormat, mRenderUniformBuffer);
+    mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
+                                                     glm::vec2(640, 480),
+                                                     mSurfaceFormat,
+                                                     mRenderUniformBuffer);
 
     return true;
 }
