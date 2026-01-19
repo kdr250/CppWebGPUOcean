@@ -3,6 +3,12 @@
 #include <glfw3webgpu.h>
 #include <iostream>
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/ext.hpp>
+#include <glm/glm.hpp>
+
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
 
@@ -109,13 +115,10 @@ bool Application::Initialize()
 
     InitializeBuffers();
 
-    float t = 0.0;
-    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &t, sizeof(float));
+    glm::vec2 windowSize(640, 480);
+    mQueue.WriteBuffer(mRenderUniformBuffer, 0, glm::value_ptr(windowSize), sizeof(glm::vec2));
 
-    mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
-                                                     glm::vec2(640, 480),
-                                                     mSurfaceFormat,
-                                                     mRenderUniformBuffer);
+    mFluidRenderer = std::make_unique<FluidRenderer>(mDevice, mSurfaceFormat, mRenderUniformBuffer);
 
     return true;
 }
@@ -151,7 +154,7 @@ void Application::Shutdown()
 void Application::InitializeBuffers()
 {
     wgpu::BufferDescriptor renderUniformBufferDesc {
-        .size             = 4 * sizeof(float),
+        .size             = sizeof(glm::vec2),
         .usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
         .mappedAtCreation = false,
     };
@@ -192,11 +195,6 @@ void Application::GenerateOutput()
         .label       = WebGPUUtils::GenerateString("My command encoder"),
     };
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
-
-    float t = static_cast<float>(glfwGetTime());  // glfwGetTime returns a double
-    t       = std::fmodf(t, 5.0f);
-    t /= 5.0f;
-    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &t, sizeof(float));
 
     mFluidRenderer->Draw(commandEncoder, targetView);
 

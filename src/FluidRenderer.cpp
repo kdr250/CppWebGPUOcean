@@ -1,10 +1,11 @@
 #include "FluidRenderer.h"
 
+#include <glm/glm.hpp>
+
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
 
 FluidRenderer::FluidRenderer(wgpu::Device device,
-                             const glm::vec2& windowSize,
                              wgpu::TextureFormat presentationFormat,
                              wgpu::Buffer renderUniformBuffer) : mDevice(device)
 {
@@ -49,8 +50,10 @@ void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView
 void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat)
 {
     // shader module
-    wgpu::ShaderModule testModule =
-        ResourceManager::LoadShaderModule("resources/shader/test.wgsl", mDevice);
+    wgpu::ShaderModule vertexModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/fullScreen.wgsl", mDevice);
+    wgpu::ShaderModule fluidModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/fluid.wgsl", mDevice);
 
     // Create bind group entry
     wgpu::BindGroupLayoutEntry fluidBindingLayoutEentry {};
@@ -58,7 +61,7 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     fluidBindingLayoutEentry.binding     = 0;
     fluidBindingLayoutEentry.visibility  = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
     fluidBindingLayoutEentry.buffer.type = wgpu::BufferBindingType::Uniform;
-    fluidBindingLayoutEentry.buffer.minBindingSize = 4 * sizeof(float);
+    fluidBindingLayoutEentry.buffer.minBindingSize = sizeof(glm::vec2);
 
     // Create a bind group layout
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
@@ -80,8 +83,8 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
             {
                 .bufferCount   = 0,
                 .buffers       = nullptr,
-                .module        = testModule,
-                .entryPoint    = "vs_main",
+                .module        = vertexModule,
+                .entryPoint    = "vs",
                 .constantCount = 0,
                 .constants     = nullptr,
             },
@@ -123,8 +126,8 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     };
 
     wgpu::FragmentState fragmentState {
-        .module        = testModule,
-        .entryPoint    = "fs_main",
+        .module        = fluidModule,
+        .entryPoint    = "fs",
         .constantCount = 0,
         .constants     = nullptr,
         .targetCount   = 1,
@@ -142,7 +145,7 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
         .binding = 0,
         .buffer  = renderUniformBuffer,
         .offset  = 0,
-        .size    = 4 * sizeof(float),
+        .size    = sizeof(glm::vec2),
     };
 
     wgpu::BindGroupDescriptor fluidBindGroupDesc {
