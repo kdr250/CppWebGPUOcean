@@ -22,6 +22,7 @@ if (EMSCRIPTEN)
     set(VCPKG_TARGET_TRIPLET "wasm32-emscripten")
 else()
     find_package(glfw3 CONFIG REQUIRED)
+    find_package(Stb REQUIRED)
 endif()
 
 find_package(Dawn REQUIRED)
@@ -45,7 +46,7 @@ add_executable(
 
 if (EMSCRIPTEN)
 
-    set(USE_FLAGS "-s USE_GLFW=3 -s ASYNCIFY --preload-file resources/")
+    set(USE_FLAGS "-s USE_GLFW=3 -s STB_IMAGE=1 -s ASYNCIFY --preload-file resources/")
     set(CMAKE_CXX_FLAGS ${USE_FLAGS})
 
     target_link_libraries(
@@ -67,6 +68,11 @@ else()
         dawn::webgpu_dawn
         glm::glm
         glfw3webgpu
+    )
+
+    target_include_directories(
+        main PRIVATE
+        ${Stb_INCLUDE_DIR}
     )
 
     add_custom_command(

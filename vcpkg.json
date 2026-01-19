@@ -6,6 +6,10 @@
             "platform": "!wasm32"
         },
         "dawn",
-        "glm"
+        "glm",
+        {
+            "name": "stb",
+            "platform": "!wasm32"
+        }
     ]
 }
