@@ -89,18 +89,90 @@ wgpu::Texture ResourceManager::LoadTexture(const std::filesystem::path& path,
     return texture;
 }
 
+wgpu::Texture ResourceManager::LoadCubemapTexture(const char* paths[6],
+                                                  wgpu::Device device,
+                                                  wgpu::TextureView* pTextureView)
+{
+    // Load image data for each of the 6 layers
+    wgpu::Extent3D cubemapSize = {0, 0, 6};
+    std::array<uint8_t*, 6> pixelData;
+    for (uint32_t layer = 0; layer < 6; ++layer)
+    {
+        int width, height, channels;
+        auto p           = paths[layer];
+        pixelData[layer] = stbi_load(p, &width, &height, &channels, 4 /* force 4 channels */);
+        if (nullptr == pixelData[layer])
+            throw std::runtime_error("Could not load input texture!");
+        if (layer == 0)
+        {
+            cubemapSize.width  = (uint32_t)width;
+            cubemapSize.height = (uint32_t)height;
+        }
+        else
+        {
+            if (cubemapSize.width != (uint32_t)width || cubemapSize.height != (uint32_t)height)
+                throw std::runtime_error("All cubemap faces must have the same size!");
+        }
+    }
+
+    wgpu::TextureDescriptor textureDesc;
+    textureDesc.dimension = wgpu::TextureDimension::e2D;
+    textureDesc.format    = wgpu::TextureFormat::RGBA8Unorm;
+    textureDesc.size      = cubemapSize;
+    textureDesc.mipLevelCount =
+        std::bit_width(std::max(textureDesc.size.width, textureDesc.size.height));
+    textureDesc.sampleCount     = 1;
+    textureDesc.usage           = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst;
+    textureDesc.viewFormatCount = 0;
+    textureDesc.viewFormats     = nullptr;
+    wgpu::Texture texture       = device.CreateTexture(&textureDesc);
+
+    wgpu::Extent3D cubemapLayerSize = {cubemapSize.width, cubemapSize.height, 1};
+    for (uint32_t layer = 0; layer < 6; ++layer)
+    {
+        wgpu::Origin3D origin = {0, 0, layer};
+
+        WriteMipMaps(device,
+                     texture,
+                     cubemapLayerSize,
+                     textureDesc.mipLevelCount,
+                     pixelData[layer],
+                     origin);
+
+        // Free CPU-side data
+        stbi_image_free(pixelData[layer]);
+    }
+
+    if (pTextureView)
+    {
+        wgpu::TextureViewDescriptor textureViewDesc;
+        textureViewDesc.aspect          = wgpu::TextureAspect::All;
+        textureViewDesc.baseArrayLayer  = 0;
+        textureViewDesc.arrayLayerCount = 6;
+        textureViewDesc.baseMipLevel    = 0;
+        textureViewDesc.mipLevelCount   = textureDesc.mipLevelCount;
+        textureViewDesc.dimension       = wgpu::TextureViewDimension::Cube;
+        textureViewDesc.format          = textureDesc.format;
+        *pTextureView                   = texture.CreateView(&textureViewDesc);
+    }
+
+    return texture;
+}
+
+template<typename component_t>
 void ResourceManager::WriteMipMaps(wgpu::Device device,
                                    wgpu::Texture texture,
                                    wgpu::Extent3D textureSize,
                                    uint32_t mipLevelCount,
-                                   const unsigned char* pixelData)
+                                   const component_t* pixelData,
+                                   wgpu::Origin3D origin)
 {
     wgpu::Queue queue = device.GetQueue();
 
     // Arguments telling which part of the texture we upload to
     wgpu::TexelCopyTextureInfo destination;
     destination.texture = texture;
-    destination.origin  = {0, 0, 0};
+    destination.origin  = origin;
     destination.aspect  = wgpu::TextureAspect::All;
 
     // Arguments telling how the C++ side pixel memory is laid out
@@ -109,7 +181,7 @@ void ResourceManager::WriteMipMaps(wgpu::Device device,
 
     // Create image data
     wgpu::Extent3D mipLevelSize = textureSize;
-    std::vector<unsigned char> previousLevelPixels;
+    std::vector<component_t> previousLevelPixels;
     wgpu::Extent3D previousMipLevelSize;
     for (uint32_t level = 0; level < mipLevelCount; ++level)
     {
@@ -119,7 +191,7 @@ void ResourceManager::WriteMipMaps(wgpu::Device device,
         {
             // We cannot really avoid this copy since we need this
             // in previousLevelPixels at the next iteration
-            memcpy(pixels.data(), pixelData, pixels.size());
+            memcpy(pixels.data(), pixelData, pixels.size() * sizeof(component_t));
         }
         else
         {
@@ -128,38 +200,42 @@ void ResourceManager::WriteMipMaps(wgpu::Device device,
             {
                 for (uint32_t j = 0; j < mipLevelSize.height; ++j)
                 {
-                    unsigned char* p = &pixels[4 * (j * mipLevelSize.width + i)];
+                    component_t* p = &pixels[4 * (j * mipLevelSize.width + i)];
                     // Get the corresponding 4 pixels from the previous level
-                    unsigned char* p00 =
+                    component_t* p00 =
                         &previousLevelPixels[4
                                              * ((2 * j + 0) * previousMipLevelSize.width
                                                 + (2 * i + 0))];
-                    unsigned char* p01 =
+                    component_t* p01 =
                         &previousLevelPixels[4
                                              * ((2 * j + 0) * previousMipLevelSize.width
                                                 + (2 * i + 1))];
-                    unsigned char* p10 =
+                    component_t* p10 =
                         &previousLevelPixels[4
                                              * ((2 * j + 1) * previousMipLevelSize.width
                                                 + (2 * i + 0))];
-                    unsigned char* p11 =
+                    component_t* p11 =
                         &previousLevelPixels[4
                                              * ((2 * j + 1) * previousMipLevelSize.width
                                                 + (2 * i + 1))];
                     // Average
-                    p[0] = (p00[0] + p01[0] + p10[0] + p11[0]) / 4;
-                    p[1] = (p00[1] + p01[1] + p10[1] + p11[1]) / 4;
-                    p[2] = (p00[2] + p01[2] + p10[2] + p11[2]) / 4;
-                    p[3] = (p00[3] + p01[3] + p10[3] + p11[3]) / 4;
+                    p[0] = (p00[0] + p01[0] + p10[0] + p11[0]) / (component_t)4;
+                    p[1] = (p00[1] + p01[1] + p10[1] + p11[1]) / (component_t)4;
+                    p[2] = (p00[2] + p01[2] + p10[2] + p11[2]) / (component_t)4;
+                    p[3] = (p00[3] + p01[3] + p10[3] + p11[3]) / (component_t)4;
                 }
             }
         }
 
         // Upload data to the GPU texture
         destination.mipLevel = level;
-        source.bytesPerRow   = 4 * mipLevelSize.width;
+        source.bytesPerRow   = 4 * mipLevelSize.width * sizeof(component_t);
         source.rowsPerImage  = mipLevelSize.height;
-        queue.WriteTexture(&destination, pixels.data(), pixels.size(), &source, &mipLevelSize);
+        queue.WriteTexture(&destination,
+                           pixels.data(),
+                           pixels.size() * sizeof(component_t),
+                           &source,
+                           &mipLevelSize);
 
         previousLevelPixels  = std::move(pixels);
         previousMipLevelSize = mipLevelSize;

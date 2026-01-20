@@ -56,7 +56,7 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
         ResourceManager::LoadShaderModule("resources/shader/render/fluid.wgsl", mDevice);
 
     // Create bind group entry
-    std::vector<wgpu::BindGroupLayoutEntry> fluidBindingLayoutEentries(4);
+    std::vector<wgpu::BindGroupLayoutEntry> fluidBindingLayoutEentries(5);
     // The uniform buffer binding
     wgpu::BindGroupLayoutEntry& bindingLayout = fluidBindingLayoutEentries[0];
     WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
@@ -84,6 +84,13 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     thicknessTextureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
     thicknessTextureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::Float;
     thicknessTextureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::e2D;
+    // The envmap texture binding
+    wgpu::BindGroupLayoutEntry& envmapTextureBindingLayout = fluidBindingLayoutEentries[4];
+    WebGPUUtils::SetDefaultBindGroupLayout(envmapTextureBindingLayout);
+    envmapTextureBindingLayout.binding               = 4;
+    envmapTextureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
+    envmapTextureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::Float;
+    envmapTextureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::Cube;
 
     // Create a bind group layout
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
@@ -182,8 +189,16 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
     ResourceManager::LoadTexture("resources/texture/test.png", mDevice, &textureView);
     wgpu::TextureView thicknessTextureView {};
     ResourceManager::LoadTexture("resources/texture/test2.png", mDevice, &thicknessTextureView);
+    wgpu::TextureView envmapTextureView {};
+    const char* cubemapPaths[] = {"resources/texture/cubemap/posx.png",
+                                  "resources/texture/cubemap/negx.png",
+                                  "resources/texture/cubemap/posy.png",
+                                  "resources/texture/cubemap/negy.png",
+                                  "resources/texture/cubemap/posz.png",
+                                  "resources/texture/cubemap/negz.png"};
+    ResourceManager::LoadCubemapTexture(cubemapPaths, mDevice, &envmapTextureView);
 
-    std::vector<wgpu::BindGroupEntry> bindings(4);
+    std::vector<wgpu::BindGroupEntry> bindings(5);
 
     bindings[0].binding = 0;
     bindings[0].buffer  = renderUniformBuffer;
@@ -198,6 +213,9 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
 
     bindings[3].binding     = 3;
     bindings[3].textureView = thicknessTextureView;
+
+    bindings[4].binding     = 4;
+    bindings[4].textureView = envmapTextureView;
 
     wgpu::BindGroupDescriptor fluidBindGroupDesc {
         .label      = WebGPUUtils::GenerateString("fluid bind group"),
