@@ -3,6 +3,16 @@
 #include <webgpu/webgpu_cpp.h>
 #include <glm/glm.hpp>
 
+struct FilterUniform
+{
+    glm::vec2 blurDir;
+    float depthThreshold;
+    float projectedParticleConstant;
+    float maxFilterSize;
+
+    float _padding[3];
+};
+
 class FluidRenderer
 {
 public:
@@ -27,6 +37,11 @@ private:
     void InitializeDepthMapBindGroups(wgpu::Buffer renderUniformBuffer, wgpu::Buffer posvelBuffer);
     void DrawDepthMap(wgpu::CommandEncoder& commandEncoder, uint32_t numParticles);
 
+    // Depth filter
+    void CreateDepthFilterUniform();
+    void InitializeDepthFilterPipeline();
+    void InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBuffer);
+
     void CreateTextures(const glm::vec2& textureSize);
 
 private:
@@ -43,6 +58,17 @@ private:
     wgpu::BindGroupLayout mDepthMapBindGroupLayout;
     wgpu::BindGroup mDepthMapBindGroup;
     wgpu::RenderPipeline mDepthMapPipeline;
+
+    // Depth filter
+    wgpu::PipelineLayout mDepthFilterLayout;
+    wgpu::BindGroupLayout mDepthFilterBindGroupLayout;
+    wgpu::BindGroup mDepthFilterBindGroups[2];
+    wgpu::RenderPipeline mDepthFilterPipeline;
+    wgpu::Buffer mDepthFilterUniformBuffer;
+    FilterUniform mFilterUniform;
+
+    // Texture Views
     wgpu::TextureView mDepthMapTextureView;
+    wgpu::TextureView mTmpDepthMapTextureView;
     wgpu::TextureView mDepthTestTextureView;
 };

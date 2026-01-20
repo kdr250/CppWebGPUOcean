@@ -16,6 +16,7 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     // pipeline
     InitializeFluidPipelines(presentationFormat);
     InitializeDepthMapPipeline();
+    InitializeDepthFilterPipeline();
 
     // textures
     CreateTextures(screenSize);
@@ -245,6 +246,128 @@ void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::Textur
     renderPass.End();
 }
 
+void FluidRenderer::CreateDepthFilterUniform()
+{
+    // TODO
+}
+
+void FluidRenderer::InitializeDepthFilterPipeline()
+{
+    // shader module
+    wgpu::ShaderModule vertexModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/fullScreen.wgsl", mDevice);
+    wgpu::ShaderModule depthFilterModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/bilateral.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(3);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
+    bindingLayout.binding               = 0;
+    bindingLayout.visibility            = wgpu::ShaderStage::Vertex;
+    bindingLayout.buffer.type           = wgpu::BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(RenderUniforms);
+    // The filter uniform binding
+    wgpu::BindGroupLayoutEntry& filterUniformBindingLayout = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(filterUniformBindingLayout);
+    filterUniformBindingLayout.binding               = 1;
+    filterUniformBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
+    filterUniformBindingLayout.buffer.type           = wgpu::BufferBindingType::Uniform;
+    filterUniformBindingLayout.buffer.minBindingSize = sizeof(FilterUniform);
+    // The texture binding
+    wgpu::BindGroupLayoutEntry& textureBindingLayout = bindingLayoutEentries[2];
+    WebGPUUtils::SetDefaultBindGroupLayout(textureBindingLayout);
+    textureBindingLayout.binding               = 2;
+    textureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
+    textureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::UnfilterableFloat;
+    textureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::e2D;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mDepthFilterBindGroupLayout    = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mDepthFilterBindGroupLayout;
+    mDepthFilterLayout              = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::RenderPipelineDescriptor renderPipelineDesc {
+        .label  = WebGPUUtils::GenerateString("depth filter rendering pipeline"),
+        .layout = mDepthFilterLayout,
+        .vertex =
+            {
+                .bufferCount   = 0,
+                .buffers       = nullptr,
+                .module        = vertexModule,
+                .entryPoint    = "vs",
+                .constantCount = 0,
+                .constants     = nullptr,
+            },
+        .primitive =
+            {
+                .topology         = wgpu::PrimitiveTopology::TriangleList,
+                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
+                .frontFace        = wgpu::FrontFace::CCW,
+                .cullMode         = wgpu::CullMode::None,
+            },
+        .multisample =
+            {
+                .count                  = 1,
+                .mask                   = ~0u,
+                .alphaToCoverageEnabled = false,
+            },
+        .depthStencil = nullptr,
+    };
+
+    wgpu::ColorTargetState colorTarget {
+        .format = wgpu::TextureFormat::R32Float,
+    };
+
+    wgpu::FragmentState fragmentState {
+        .module        = depthFilterModule,
+        .entryPoint    = "fs",
+        .constantCount = 0,
+        .constants     = nullptr,
+        .targetCount   = 1,
+        .targets       = &colorTarget,
+    };
+
+    renderPipelineDesc.fragment = &fragmentState;
+
+    mDepthFilterPipeline = mDevice.CreateRenderPipeline(&renderPipelineDesc);
+}
+
+void FluidRenderer::InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(2);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = renderUniformBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = sizeof(RenderUniforms);
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mDepthFilterUniformBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = sizeof(FilterUniform);
+
+    bindings[2].binding     = 2;
+    bindings[2].textureView = mDepthMapTextureView;
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("depth filterX bind group"),
+        .layout     = mDepthMapBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mDepthMapBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
 {
     wgpu::Extent3D size = {(unsigned int)textureSize.x, (unsigned int)textureSize.y, 1};
@@ -258,6 +381,15 @@ void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
 
     wgpu::Texture depthMapTexture = mDevice.CreateTexture(&textureDesc);
     mDepthMapTextureView          = depthMapTexture.CreateView();
+
+    // temporary depth map texture
+    textureDesc.label  = WebGPUUtils::GenerateString("temporary depth map texture");
+    textureDesc.size   = size;
+    textureDesc.usage  = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::TextureBinding;
+    textureDesc.format = wgpu::TextureFormat::R32Float;
+
+    wgpu::Texture tmpDepthMapTexture = mDevice.CreateTexture(&textureDesc);
+    mTmpDepthMapTextureView          = tmpDepthMapTexture.CreateView();
 
     // depth test texture
     textureDesc.label  = WebGPUUtils::GenerateString("depth test texture");
