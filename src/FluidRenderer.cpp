@@ -9,7 +9,8 @@
 
 FluidRenderer::FluidRenderer(wgpu::Device device,
                              wgpu::TextureFormat presentationFormat,
-                             wgpu::Buffer renderUniformBuffer) : mDevice(device)
+                             wgpu::Buffer renderUniformBuffer,
+                             wgpu::Buffer posvelBuffer) : mDevice(device)
 {
     // pipeline
     InitializeFluidPipelines(presentationFormat);
@@ -17,6 +18,7 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
 
     // bind group
     InitializeFluidBindGroups(renderUniformBuffer);
+    InitializeDepthMapBindGroups(renderUniformBuffer, posvelBuffer);
 }
 
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView)
@@ -339,4 +341,28 @@ void FluidRenderer::InitializeDepthMapPipeline()
     renderPipelineDesc.fragment = &fragmentState;
 
     mDepthMapPipeline = mDevice.CreateRenderPipeline(&renderPipelineDesc);
+}
+
+void FluidRenderer::InitializeDepthMapBindGroups(wgpu::Buffer renderUniformBuffer,
+                                                 wgpu::Buffer posvelBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(2);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = renderUniformBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = renderUniformBuffer.GetSize();
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = posvelBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = posvelBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("fluid bind group"),
+        .layout     = mDepthMapBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mDepthMapBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }

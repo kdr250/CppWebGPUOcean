@@ -7,7 +7,8 @@ class FluidRenderer
 public:
     FluidRenderer(wgpu::Device device,
                   wgpu::TextureFormat presentationFormat,
-                  wgpu::Buffer renderUniformBuffer);
+                  wgpu::Buffer renderUniformBuffer,
+                  wgpu::Buffer posvelBuffer);
 
     void Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView);
 
@@ -19,6 +20,7 @@ private:
 
     // Depth map
     void InitializeDepthMapPipeline();
+    void InitializeDepthMapBindGroups(wgpu::Buffer renderUniformBuffer, wgpu::Buffer posvelBuffer);
 
 private:
     wgpu::Device mDevice;
