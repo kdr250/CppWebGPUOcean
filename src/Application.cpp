@@ -130,6 +130,7 @@ bool Application::Initialize()
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
+                                                     mRenderUniforms.screenSize,
                                                      mSurfaceFormat,
                                                      mRenderUniformBuffer,
                                                      mPosvelBuffer);

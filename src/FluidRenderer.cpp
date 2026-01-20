@@ -8,6 +8,7 @@
 #include "sph/SPH.h"
 
 FluidRenderer::FluidRenderer(wgpu::Device device,
+                             const glm::vec2& screenSize,
                              wgpu::TextureFormat presentationFormat,
                              wgpu::Buffer renderUniformBuffer,
                              wgpu::Buffer posvelBuffer) : mDevice(device)
@@ -15,6 +16,9 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     // pipeline
     InitializeFluidPipelines(presentationFormat);
     InitializeDepthMapPipeline();
+
+    // textures
+    CreateTextures(screenSize);
 
     // bind group
     InitializeFluidBindGroups(renderUniformBuffer);
@@ -24,6 +28,7 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView)
 {
     DrawFluid(commandEncoder, targetView);
+    DrawDepthMap(commandEncoder);
 }
 
 void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat)
@@ -238,6 +243,30 @@ void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::Textur
     renderPass.End();
 }
 
+void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
+{
+    wgpu::Extent3D size = {(unsigned int)textureSize.x, (unsigned int)textureSize.y, 1};
+    wgpu::TextureDescriptor textureDesc {};
+
+    // depth map texture
+    textureDesc.label  = WebGPUUtils::GenerateString("depth map texture");
+    textureDesc.size   = size;
+    textureDesc.usage  = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::TextureBinding;
+    textureDesc.format = wgpu::TextureFormat::R32Float;
+
+    wgpu::Texture depthMapTexture = mDevice.CreateTexture(&textureDesc);
+    mDepthMapTextureView          = depthMapTexture.CreateView();
+
+    // depth test texture
+    textureDesc.label  = WebGPUUtils::GenerateString("depth test texture");
+    textureDesc.size   = size;
+    textureDesc.usage  = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::TextureBinding;
+    textureDesc.format = wgpu::TextureFormat::Depth32Float;
+
+    wgpu::Texture depthTestTexture = mDevice.CreateTexture(&textureDesc);
+    mDepthTestTextureView          = depthTestTexture.CreateView();
+}
+
 void FluidRenderer::InitializeDepthMapPipeline()
 {
     // shader module
@@ -365,4 +394,44 @@ void FluidRenderer::InitializeDepthMapBindGroups(wgpu::Buffer renderUniformBuffe
         .entries    = bindings.data(),
     };
     mDepthMapBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void FluidRenderer::DrawDepthMap(wgpu::CommandEncoder& commandEncoder)
+{
+    // The attachment part of the render pass descriptor describes the target texture of the pass
+    wgpu::RenderPassColorAttachment renderPassColorAttachment {
+        .view          = mDepthMapTextureView,
+        .resolveTarget = nullptr,
+        .loadOp        = wgpu::LoadOp::Clear,
+        .storeOp       = wgpu::StoreOp::Store,
+        .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+    };
+
+    wgpu::RenderPassDepthStencilAttachment depthStencilAttachment {
+        .view            = mDepthTestTextureView,
+        .depthClearValue = 1.0f,
+        .depthLoadOp     = wgpu::LoadOp::Clear,
+        .depthStoreOp    = wgpu::StoreOp::Store,
+    };
+
+    // Create the render pass that clears the screen with our color
+    wgpu::RenderPassDescriptor renderPassDesc {
+        .nextInChain            = nullptr,
+        .label                  = WebGPUUtils::GenerateString("fluid render Pass"),
+        .colorAttachmentCount   = 1,
+        .colorAttachments       = &renderPassColorAttachment,
+        .depthStencilAttachment = &depthStencilAttachment,
+        .timestampWrites        = nullptr,
+    };
+
+    // Create the render pass and end it immediately (we only clear the screen but do not draw anything)
+    wgpu::RenderPassEncoder renderPass = commandEncoder.BeginRenderPass(&renderPassDesc);
+
+    // Select which render pipeline to use
+    renderPass.SetPipeline(mDepthMapPipeline);
+    renderPass.SetBindGroup(0, mDepthMapBindGroup, 0, nullptr);
+    renderPass.Draw(6, 1, 0, 0);
+
+    renderPass.End();
 }

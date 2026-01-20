@@ -1,11 +1,13 @@
 #pragma once
 
 #include <webgpu/webgpu_cpp.h>
+#include <glm/glm.hpp>
 
 class FluidRenderer
 {
 public:
     FluidRenderer(wgpu::Device device,
+                  const glm::vec2& screenSize,
                   wgpu::TextureFormat presentationFormat,
                   wgpu::Buffer renderUniformBuffer,
                   wgpu::Buffer posvelBuffer);
@@ -21,6 +23,9 @@ private:
     // Depth map
     void InitializeDepthMapPipeline();
     void InitializeDepthMapBindGroups(wgpu::Buffer renderUniformBuffer, wgpu::Buffer posvelBuffer);
+    void DrawDepthMap(wgpu::CommandEncoder& commandEncoder);
+
+    void CreateTextures(const glm::vec2& textureSize);
 
 private:
     wgpu::Device mDevice;
@@ -36,4 +41,6 @@ private:
     wgpu::BindGroupLayout mDepthMapBindGroupLayout;
     wgpu::BindGroup mDepthMapBindGroup;
     wgpu::RenderPipeline mDepthMapPipeline;
+    wgpu::TextureView mDepthMapTextureView;
+    wgpu::TextureView mDepthTestTextureView;
 };
