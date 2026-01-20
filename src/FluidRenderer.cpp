@@ -42,7 +42,6 @@ void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView
     // Select which render pipeline to use
     renderPass.SetPipeline(mFluidPipeline);
     renderPass.SetBindGroup(0, mFluidBindGroup, 0, nullptr);
-    // Draw 1 instance of a 3-vertices shape
     renderPass.Draw(6, 1, 0, 0);
 
     renderPass.End();
@@ -57,7 +56,7 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
         ResourceManager::LoadShaderModule("resources/shader/render/fluid.wgsl", mDevice);
 
     // Create bind group entry
-    std::vector<wgpu::BindGroupLayoutEntry> fluidBindingLayoutEentries(3);
+    std::vector<wgpu::BindGroupLayoutEntry> fluidBindingLayoutEentries(4);
     // The uniform buffer binding
     wgpu::BindGroupLayoutEntry& bindingLayout = fluidBindingLayoutEentries[0];
     WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
@@ -78,6 +77,13 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     samplerBindingLayout.binding      = 2;
     samplerBindingLayout.visibility   = wgpu::ShaderStage::Fragment;
     samplerBindingLayout.sampler.type = wgpu::SamplerBindingType::Filtering;
+    // The thickness texture binding
+    wgpu::BindGroupLayoutEntry& thicknessTextureBindingLayout = fluidBindingLayoutEentries[3];
+    WebGPUUtils::SetDefaultBindGroupLayout(thicknessTextureBindingLayout);
+    thicknessTextureBindingLayout.binding               = 3;
+    thicknessTextureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
+    thicknessTextureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::Float;
+    thicknessTextureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::e2D;
 
     // Create a bind group layout
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
@@ -174,8 +180,10 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
     // FIXME
     wgpu::TextureView textureView {};
     ResourceManager::LoadTexture("resources/texture/test.png", mDevice, &textureView);
+    wgpu::TextureView thicknessTextureView {};
+    ResourceManager::LoadTexture("resources/texture/test2.png", mDevice, &thicknessTextureView);
 
-    std::vector<wgpu::BindGroupEntry> bindings(3);
+    std::vector<wgpu::BindGroupEntry> bindings(4);
 
     bindings[0].binding = 0;
     bindings[0].buffer  = renderUniformBuffer;
@@ -187,6 +195,9 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
 
     bindings[2].binding = 2;
     bindings[2].sampler = sampler;
+
+    bindings[3].binding     = 3;
+    bindings[3].textureView = thicknessTextureView;
 
     wgpu::BindGroupDescriptor fluidBindGroupDesc {
         .label      = WebGPUUtils::GenerateString("fluid bind group"),

@@ -1,6 +1,7 @@
 @group(0) @binding(0) var<uniform> uniforms: RenderUniforms;
 @group(0) @binding(1) var texture: texture_2d<f32>;
 @group(0) @binding(2) var textureSampler: sampler;
+@group(0) @binding(3) var thicknessTexture: texture_2d<f32>;
 
 struct RenderUniforms {
     screenSize: vec2f,
@@ -20,5 +21,6 @@ struct FragmentInput {
 @fragment
 fn fs(input: FragmentInput) -> @location(0) vec4f {
     let color = textureSample(texture, textureSampler, input.uv).rgb;
-    return vec4f(color, 1.0);
+    let thicknessColor = textureSample(thicknessTexture, textureSampler, input.uv).rgb;
+    return vec4f(color + thicknessColor, 1.0);
 }
