@@ -1,6 +1,7 @@
 #include "ResourceManager.h"
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <fstream>
 #include <sstream>
