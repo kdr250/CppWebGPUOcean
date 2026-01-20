@@ -122,17 +122,15 @@ bool Application::Initialize()
     mCamera = std::make_unique<Camera>();
     mCamera->Reset(mRenderUniforms,
                    mRenderUniforms.screenSize,
-                   10.0f,
+                   2.6f,
                    glm::vec3(0.0f, 0.0f, 1.0f),
                    45.0f * glm::pi<float>() / 180.0f,
-                   1.5f);
+                   0.05f);
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
-    std::vector<PosVel> posvel;
-    posvel.push_back(PosVel(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 0.0)));
-    posvel.push_back(PosVel(glm::vec3(0.0, 0.0, 1.2), glm::vec3(0.0, 0.0, 0.0)));
-    mQueue.WriteBuffer(mPosvelBuffer, 0, posvel.data(), sizeof(PosVel) * posvel.size());
+    InitializeParticles(glm::vec3(1.0f, 2.0f, 1.0f), 10000);
+    mQueue.WriteBuffer(mPosvelBuffer, 0, mPosvel.data(), sizeof(PosVel) * mPosvel.size());
 
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
                                                      mRenderUniforms.screenSize,
@@ -199,6 +197,32 @@ void Application::InitializeBuffers()
     mPosvelBuffer = mDevice.CreateBuffer(&bufferDesc);
 }
 
+void Application::InitializeParticles(const glm::vec3& initHalfBoxSize, uint32_t numParticles)
+{
+    mPosvel.clear();
+    mPosvel.resize(numParticles);
+    uint32_t particleCount   = 0;
+    const float DIST_FACTOR  = 0.5;
+    const float kernelRadius = 0.07;
+
+    for (float y = -initHalfBoxSize[1] * 0.95; particleCount < numParticles;
+         y += DIST_FACTOR * kernelRadius)
+    {
+        for (float x = -0.95 * initHalfBoxSize[0];
+             x < 0.95 * initHalfBoxSize[0] && particleCount < numParticles;
+             x += DIST_FACTOR * kernelRadius)
+        {
+            for (float z = -0.95 * initHalfBoxSize[2];
+                 z < 0 * initHalfBoxSize[2] && particleCount < numParticles;
+                 z += DIST_FACTOR * kernelRadius)
+            {
+                mPosvel[particleCount].position = glm::vec3(x, y, z);
+                particleCount++;
+            }
+        }
+    }
+}
+
 void Application::Loop()
 {
     ProcessInput();
@@ -234,7 +258,7 @@ void Application::GenerateOutput()
     };
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
-    mFluidRenderer->Draw(commandEncoder, targetView);
+    mFluidRenderer->Draw(commandEncoder, targetView, mPosvel.size());
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {

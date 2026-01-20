@@ -12,7 +12,9 @@ public:
                   wgpu::Buffer renderUniformBuffer,
                   wgpu::Buffer posvelBuffer);
 
-    void Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView);
+    void Draw(wgpu::CommandEncoder& commandEncoder,
+              wgpu::TextureView targetView,
+              uint32_t numParticles);
 
 private:
     // Fluid
@@ -23,7 +25,7 @@ private:
     // Depth map
     void InitializeDepthMapPipeline();
     void InitializeDepthMapBindGroups(wgpu::Buffer renderUniformBuffer, wgpu::Buffer posvelBuffer);
-    void DrawDepthMap(wgpu::CommandEncoder& commandEncoder);
+    void DrawDepthMap(wgpu::CommandEncoder& commandEncoder, uint32_t numParticles);
 
     void CreateTextures(const glm::vec2& textureSize);
 

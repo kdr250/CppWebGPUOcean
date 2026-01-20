@@ -33,6 +33,7 @@ struct PosVel
 
     float _padding[2];
 
+    PosVel() = default;
     PosVel(glm::vec3 pos, glm::vec3 vel) : position(pos), v(vel) {};
 };
 
@@ -47,6 +48,9 @@ public:
 
 private:
     void InitializeBuffers();
+
+    // FIXME
+    void InitializeParticles(const glm::vec3& initHalfBoxSize, uint32_t numParticles);
 
     void Loop();
 
@@ -70,9 +74,10 @@ private:
     std::unique_ptr<FluidRenderer> mFluidRenderer;
     std::unique_ptr<Camera> mCamera;
 
-    RenderUniforms mRenderUniforms;
-
     wgpu::Buffer mRenderUniformBuffer;
     wgpu::Buffer mParticleBuffer;
     wgpu::Buffer mPosvelBuffer;
+
+    RenderUniforms mRenderUniforms;
+    std::vector<PosVel> mPosvel;
 };

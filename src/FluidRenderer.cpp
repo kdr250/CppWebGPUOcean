@@ -25,10 +25,12 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     InitializeDepthMapBindGroups(renderUniformBuffer, posvelBuffer);
 }
 
-void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView)
+void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
+                         wgpu::TextureView targetView,
+                         uint32_t numParticles)
 {
     DrawFluid(commandEncoder, targetView);
-    DrawDepthMap(commandEncoder);
+    DrawDepthMap(commandEncoder, numParticles);
 }
 
 void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat)
@@ -379,7 +381,7 @@ void FluidRenderer::InitializeDepthMapBindGroups(wgpu::Buffer renderUniformBuffe
     mDepthMapBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
 
-void FluidRenderer::DrawDepthMap(wgpu::CommandEncoder& commandEncoder)
+void FluidRenderer::DrawDepthMap(wgpu::CommandEncoder& commandEncoder, uint32_t numParticles)
 {
     // The attachment part of the render pass descriptor describes the target texture of the pass
     wgpu::RenderPassColorAttachment renderPassColorAttachment {
@@ -414,7 +416,7 @@ void FluidRenderer::DrawDepthMap(wgpu::CommandEncoder& commandEncoder)
     // Select which render pipeline to use
     renderPass.SetPipeline(mDepthMapPipeline);
     renderPass.SetBindGroup(0, mDepthMapBindGroup, 0, nullptr);
-    renderPass.Draw(6, 1, 0, 0);
+    renderPass.Draw(6, numParticles, 0, 0);
 
     renderPass.End();
 }
