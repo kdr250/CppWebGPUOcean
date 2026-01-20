@@ -11,6 +11,7 @@
 
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
+#include "sph/SPH.h"
 
 Application::Application() : mWindow(nullptr) {}
 
@@ -163,12 +164,30 @@ void Application::Shutdown()
 
 void Application::InitializeBuffers()
 {
-    wgpu::BufferDescriptor renderUniformBufferDesc {
-        .size             = sizeof(RenderUniforms),
-        .usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
-        .mappedAtCreation = false,
-    };
-    mRenderUniformBuffer = mDevice.CreateBuffer(&renderUniformBufferDesc);
+    // render uniform buffer
+    wgpu::BufferDescriptor bufferDesc {};
+    bufferDesc.label            = WebGPUUtils::GenerateString("render unioform buffer");
+    bufferDesc.size             = sizeof(RenderUniforms);
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform;
+    bufferDesc.mappedAtCreation = false;
+
+    mRenderUniformBuffer = mDevice.CreateBuffer(&bufferDesc);
+
+    // particle storage buffer
+    bufferDesc.label            = WebGPUUtils::GenerateString("particle storage buffer");
+    bufferDesc.size             = SPH_PARTICLE_STRUCTURE_SIZE * NUM_PARTICLES_MAX;
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
+    bufferDesc.mappedAtCreation = false;
+
+    mParticleBuffer = mDevice.CreateBuffer(&bufferDesc);
+
+    // position storage buffer
+    bufferDesc.label            = WebGPUUtils::GenerateString("position storage buffer");
+    bufferDesc.size             = 32 * NUM_PARTICLES_MAX;  // 32 = 2 * vec3f + padding
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
+    bufferDesc.mappedAtCreation = false;
+
+    mPosvelBuffer = mDevice.CreateBuffer(&bufferDesc);
 }
 
 void Application::Loop()

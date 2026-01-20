@@ -60,6 +60,9 @@ private:
     std::unique_ptr<FluidRenderer> mFluidRenderer;
     std::unique_ptr<Camera> mCamera;
 
-    wgpu::Buffer mRenderUniformBuffer;
     RenderUniforms mRenderUniforms;
+
+    wgpu::Buffer mRenderUniformBuffer;
+    wgpu::Buffer mParticleBuffer;
+    wgpu::Buffer mPosvelBuffer;
 };
