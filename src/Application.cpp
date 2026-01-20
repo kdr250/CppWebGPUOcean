@@ -129,6 +129,11 @@ bool Application::Initialize()
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
+    std::vector<PosVel> posvel;
+    posvel.push_back(PosVel(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 0.0)));
+    posvel.push_back(PosVel(glm::vec3(0.0, 0.0, 1.2), glm::vec3(0.0, 0.0, 0.0)));
+    mQueue.WriteBuffer(mPosvelBuffer, 0, posvel.data(), sizeof(PosVel) * posvel.size());
+
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
                                                      mRenderUniforms.screenSize,
                                                      mSurfaceFormat,
@@ -187,7 +192,7 @@ void Application::InitializeBuffers()
 
     // position storage buffer
     bufferDesc.label            = WebGPUUtils::GenerateString("position storage buffer");
-    bufferDesc.size             = 32 * NUM_PARTICLES_MAX;  // 32 = 2 * vec3f + padding
+    bufferDesc.size             = sizeof(PosVel) * NUM_PARTICLES_MAX;
     bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
     bufferDesc.mappedAtCreation = false;
 

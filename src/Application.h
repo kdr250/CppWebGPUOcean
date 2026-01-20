@@ -26,6 +26,16 @@ struct RenderUniforms
     float _padding[3];
 };
 
+struct PosVel
+{
+    glm::vec3 position;
+    glm::vec3 v;
+
+    float _padding[2];
+
+    PosVel(glm::vec3 pos, glm::vec3 vel) : position(pos), v(vel) {};
+};
+
 class Application
 {
 public:

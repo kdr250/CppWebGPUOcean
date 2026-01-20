@@ -53,7 +53,7 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     WebGPUUtils::SetDefaultBindGroupLayout(textureBindingLayout);
     textureBindingLayout.binding               = 1;
     textureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
-    textureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::Float;
+    textureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::UnfilterableFloat;
     textureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::e2D;
     // The sampler binding
     wgpu::BindGroupLayoutEntry& samplerBindingLayout = fluidBindingLayoutEentries[2];
@@ -190,7 +190,7 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
     bindings[0].size    = sizeof(RenderUniforms);
 
     bindings[1].binding     = 1;
-    bindings[1].textureView = textureView;
+    bindings[1].textureView = mDepthMapTextureView;
 
     bindings[2].binding = 2;
     bindings[2].sampler = sampler;
@@ -285,10 +285,10 @@ void FluidRenderer::InitializeDepthMapPipeline()
     // The positions binding
     wgpu::BindGroupLayoutEntry& posvelBindingLayout = bindingLayoutEentries[1];
     WebGPUUtils::SetDefaultBindGroupLayout(posvelBindingLayout);
-    posvelBindingLayout.binding         = 1;
-    bindingLayout.visibility            = wgpu::ShaderStage::Vertex;
-    bindingLayout.buffer.type           = wgpu::BufferBindingType::ReadOnlyStorage;
-    bindingLayout.buffer.minBindingSize = 32 * NUM_PARTICLES_MAX;
+    posvelBindingLayout.binding               = 1;
+    posvelBindingLayout.visibility            = wgpu::ShaderStage::Vertex;
+    posvelBindingLayout.buffer.type           = wgpu::BufferBindingType::ReadOnlyStorage;
+    posvelBindingLayout.buffer.minBindingSize = sizeof(PosVel) * NUM_PARTICLES_MAX;
 
     // Create a bind group layout
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
@@ -337,25 +337,8 @@ void FluidRenderer::InitializeDepthMapPipeline()
     };
     renderPipelineDesc.depthStencil = &depthStencilState;
 
-    wgpu::BlendState blendState {
-        .color =
-            {
-                .srcFactor = wgpu::BlendFactor::SrcAlpha,
-                .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-                .operation = wgpu::BlendOperation::Add,
-            },
-        .alpha =
-            {
-                .srcFactor = wgpu::BlendFactor::Zero,
-                .dstFactor = wgpu::BlendFactor::One,
-                .operation = wgpu::BlendOperation::Add,
-            },
-    };
-
     wgpu::ColorTargetState colorTarget {
-        .format    = wgpu::TextureFormat::R32Float,
-        .blend     = &blendState,
-        .writeMask = wgpu::ColorWriteMask::All,
+        .format = wgpu::TextureFormat::R32Float,
     };
 
     wgpu::FragmentState fragmentState {
@@ -380,7 +363,7 @@ void FluidRenderer::InitializeDepthMapBindGroups(wgpu::Buffer renderUniformBuffe
     bindings[0].binding = 0;
     bindings[0].buffer  = renderUniformBuffer;
     bindings[0].offset  = 0;
-    bindings[0].size    = renderUniformBuffer.GetSize();
+    bindings[0].size    = sizeof(RenderUniforms);
 
     bindings[1].binding = 1;
     bindings[1].buffer  = posvelBuffer;

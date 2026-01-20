@@ -21,7 +21,7 @@ struct FragmentInput {
 
 @fragment
 fn fs(input: FragmentInput) -> @location(0) vec4f {
-    let color = textureSample(texture, textureSampler, input.uv).rgb;
+    let color = textureLoad(texture, vec2<i32>(input.uv * 16.0), 0).rgb;
     let thicknessColor = textureSample(thicknessTexture, textureSampler, input.uv).rgb;
     let envColor = textureSampleLevel(envmapTexture, textureSampler, vec3f(0.0, 0.0, 0.0), 0).rgb;
     return vec4f(color + thicknessColor + envColor, 1.0);
