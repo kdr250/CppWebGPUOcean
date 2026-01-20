@@ -5,12 +5,17 @@
 #include "Application.h"
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
+#include "sph/SPH.h"
 
 FluidRenderer::FluidRenderer(wgpu::Device device,
                              wgpu::TextureFormat presentationFormat,
                              wgpu::Buffer renderUniformBuffer) : mDevice(device)
 {
+    // pipeline
     InitializeFluidPipelines(presentationFormat);
+    InitializeDepthMapPipeline();
+
+    // bind group
     InitializeFluidBindGroups(renderUniformBuffer);
 }
 
@@ -229,4 +234,109 @@ void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::Textur
     renderPass.Draw(6, 1, 0, 0);
 
     renderPass.End();
+}
+
+void FluidRenderer::InitializeDepthMapPipeline()
+{
+    // shader module
+    wgpu::ShaderModule depthMapModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/depthMap.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(2);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
+    bindingLayout.binding               = 0;
+    bindingLayout.visibility            = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
+    bindingLayout.buffer.type           = wgpu::BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(RenderUniforms);
+    // The positions binding
+    wgpu::BindGroupLayoutEntry& posvelBindingLayout = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(posvelBindingLayout);
+    posvelBindingLayout.binding         = 1;
+    bindingLayout.visibility            = wgpu::ShaderStage::Vertex;
+    bindingLayout.buffer.type           = wgpu::BufferBindingType::ReadOnlyStorage;
+    bindingLayout.buffer.minBindingSize = 32 * NUM_PARTICLES_MAX;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mDepthMapBindGroupLayout       = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mDepthMapBindGroupLayout;
+    mDepthMapLayout                 = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::RenderPipelineDescriptor renderPipelineDesc {
+        .label  = WebGPUUtils::GenerateString("depth map rendering pipeline"),
+        .layout = mDepthMapLayout,
+        .vertex =
+            {
+                .bufferCount   = 0,
+                .buffers       = nullptr,
+                .module        = depthMapModule,
+                .entryPoint    = "vs",
+                .constantCount = 0,
+                .constants     = nullptr,
+            },
+        .primitive =
+            {
+                .topology         = wgpu::PrimitiveTopology::TriangleList,
+                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
+                .frontFace        = wgpu::FrontFace::CCW,
+                .cullMode         = wgpu::CullMode::None,
+            },
+        .multisample =
+            {
+                .count                  = 1,
+                .mask                   = ~0u,
+                .alphaToCoverageEnabled = false,
+            },
+    };
+
+    wgpu::DepthStencilState depthStencilState {
+        .depthWriteEnabled = true,
+        .depthCompare      = wgpu::CompareFunction::Less,
+        .format            = wgpu::TextureFormat::Depth32Float,
+    };
+    renderPipelineDesc.depthStencil = &depthStencilState;
+
+    wgpu::BlendState blendState {
+        .color =
+            {
+                .srcFactor = wgpu::BlendFactor::SrcAlpha,
+                .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
+                .operation = wgpu::BlendOperation::Add,
+            },
+        .alpha =
+            {
+                .srcFactor = wgpu::BlendFactor::Zero,
+                .dstFactor = wgpu::BlendFactor::One,
+                .operation = wgpu::BlendOperation::Add,
+            },
+    };
+
+    wgpu::ColorTargetState colorTarget {
+        .format    = wgpu::TextureFormat::R32Float,
+        .blend     = &blendState,
+        .writeMask = wgpu::ColorWriteMask::All,
+    };
+
+    wgpu::FragmentState fragmentState {
+        .module        = depthMapModule,
+        .entryPoint    = "fs",
+        .constantCount = 0,
+        .constants     = nullptr,
+        .targetCount   = 1,
+        .targets       = &colorTarget,
+    };
+
+    renderPipelineDesc.fragment = &fragmentState;
+
+    mDepthMapPipeline = mDevice.CreateRenderPipeline(&renderPipelineDesc);
 }
