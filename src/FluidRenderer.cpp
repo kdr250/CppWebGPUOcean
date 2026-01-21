@@ -37,6 +37,7 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     // bind group
     InitializeFluidBindGroups(renderUniformBuffer);
     InitializeDepthMapBindGroups(renderUniformBuffer, posvelBuffer);
+    InitializeDepthFilterBindGroups(renderUniformBuffer);
 }
 
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
@@ -389,28 +390,48 @@ void FluidRenderer::InitializeDepthFilterPipeline()
 
 void FluidRenderer::InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBuffer)
 {
-    std::vector<wgpu::BindGroupEntry> bindings(2);
+    std::vector<wgpu::BindGroupEntry> bindings(3);
 
+    // filter X
     bindings[0].binding = 0;
     bindings[0].buffer  = renderUniformBuffer;
     bindings[0].offset  = 0;
     bindings[0].size    = sizeof(RenderUniforms);
 
     bindings[1].binding = 1;
-    bindings[1].buffer  = mFilterXUniformBuffer;  // FIXME
+    bindings[1].buffer  = mFilterXUniformBuffer;
     bindings[1].offset  = 0;
     bindings[1].size    = sizeof(FilterUniform);
 
     bindings[2].binding     = 2;
     bindings[2].textureView = mDepthMapTextureView;
 
-    wgpu::BindGroupDescriptor bindGroupDesc {
-        .label      = WebGPUUtils::GenerateString("depth filterX bind group"),
-        .layout     = mDepthMapBindGroupLayout,
-        .entryCount = static_cast<uint32_t>(bindings.size()),
-        .entries    = bindings.data(),
-    };
-    mDepthMapBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+    wgpu::BindGroupDescriptor bindGroupDesc {};
+    bindGroupDesc.label       = WebGPUUtils::GenerateString("depth filterX bind group");
+    bindGroupDesc.layout      = mDepthFilterBindGroupLayout;
+    bindGroupDesc.entryCount  = static_cast<uint32_t>(bindings.size());
+    bindGroupDesc.entries     = bindings.data();
+    mDepthFilterBindGroups[0] = mDevice.CreateBindGroup(&bindGroupDesc);
+
+    // filter Y
+    bindings[0].binding = 0;
+    bindings[0].buffer  = renderUniformBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = sizeof(RenderUniforms);
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mFilterXUniformBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = sizeof(FilterUniform);
+
+    bindings[2].binding     = 2;
+    bindings[2].textureView = mDepthMapTextureView;
+
+    bindGroupDesc.label       = WebGPUUtils::GenerateString("depth filterY bind group");
+    bindGroupDesc.layout      = mDepthFilterBindGroupLayout;
+    bindGroupDesc.entryCount  = static_cast<uint32_t>(bindings.size());
+    bindGroupDesc.entries     = bindings.data();
+    mDepthFilterBindGroups[1] = mDevice.CreateBindGroup(&bindGroupDesc);
 }
 
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
