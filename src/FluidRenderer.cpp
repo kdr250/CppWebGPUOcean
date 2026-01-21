@@ -48,6 +48,7 @@ void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
 {
     DrawDepthMap(commandEncoder, numParticles);
     DrawDepthFilter(commandEncoder);
+    DrawThicknessMap(commandEncoder, numParticles);
     DrawFluid(commandEncoder, targetView);
 }
 
@@ -628,6 +629,38 @@ void FluidRenderer::InitializeThicknessMapBindGroups(wgpu::Buffer renderUniformB
     mThicknessMapBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
 
+void FluidRenderer::DrawThicknessMap(wgpu::CommandEncoder& commandEncoder, uint32_t numParticles)
+{
+    wgpu::RenderPassColorAttachment renderPassColorAttachment {
+        .view          = mThicknessMapTextureView,
+        .resolveTarget = nullptr,
+        .loadOp        = wgpu::LoadOp::Clear,
+        .storeOp       = wgpu::StoreOp::Store,
+        .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+    };
+
+    // Create the render pass that clears the screen with our color
+    wgpu::RenderPassDescriptor renderPassDesc {
+        .nextInChain            = nullptr,
+        .label                  = WebGPUUtils::GenerateString("thickness map render Pass"),
+        .colorAttachmentCount   = 1,
+        .colorAttachments       = &renderPassColorAttachment,
+        .depthStencilAttachment = nullptr,
+        .timestampWrites        = nullptr,
+    };
+
+    // Create the render pass and end it immediately (we only clear the screen but do not draw anything)
+    wgpu::RenderPassEncoder renderPass = commandEncoder.BeginRenderPass(&renderPassDesc);
+
+    // Select which render pipeline to use
+    renderPass.SetPipeline(mThicknessMapPipeline);
+    renderPass.SetBindGroup(0, mThicknessMapBindGroup, 0, nullptr);
+    renderPass.Draw(6, numParticles, 0, 0);
+
+    renderPass.End();
+}
+
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
 {
     wgpu::Extent3D size = {(unsigned int)textureSize.x, (unsigned int)textureSize.y, 1};
@@ -659,6 +692,24 @@ void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
 
     wgpu::Texture depthTestTexture = mDevice.CreateTexture(&textureDesc);
     mDepthTestTextureView          = depthTestTexture.CreateView();
+
+    // thickness map texture
+    textureDesc.label  = WebGPUUtils::GenerateString("thickness map texture");
+    textureDesc.size   = size;
+    textureDesc.usage  = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::TextureBinding;
+    textureDesc.format = wgpu::TextureFormat::R16Float;
+
+    wgpu::Texture thicknessMapTexture = mDevice.CreateTexture(&textureDesc);
+    mThicknessMapTextureView          = thicknessMapTexture.CreateView();
+
+    // temporary thickness map texture
+    textureDesc.label  = WebGPUUtils::GenerateString("temporary thickness map texture");
+    textureDesc.size   = size;
+    textureDesc.usage  = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::TextureBinding;
+    textureDesc.format = wgpu::TextureFormat::R16Float;
+
+    wgpu::Texture temporaryThicknessMapTexture = mDevice.CreateTexture(&textureDesc);
+    mTmpThicknessMapTextureView                = temporaryThicknessMapTexture.CreateView();
 }
 
 void FluidRenderer::InitializeDepthMapPipeline()

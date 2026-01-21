@@ -51,6 +51,7 @@ private:
     void InitializeThicknessMapPipeline();
     void InitializeThicknessMapBindGroups(wgpu::Buffer renderUniformBuffer,
                                           wgpu::Buffer posvelBuffer);
+    void DrawThicknessMap(wgpu::CommandEncoder& commandEncoder, uint32_t numParticles);
 
     void CreateTextures(const glm::vec2& textureSize);
 
@@ -89,4 +90,6 @@ private:
     wgpu::TextureView mDepthMapTextureView;
     wgpu::TextureView mTmpDepthMapTextureView;
     wgpu::TextureView mDepthTestTextureView;
+    wgpu::TextureView mThicknessMapTextureView;
+    wgpu::TextureView mTmpThicknessMapTextureView;
 };
