@@ -26,22 +26,25 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     float maxFilterSize = 100.0f;
     CreateDepthFilterUniform(depthThreshold, projectedParticleConstant, maxFilterSize);
 
+    wgpu::ShaderModule vertexModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/fullScreen.wgsl", mDevice);
+
     // pipeline
-    InitializeFluidPipelines(presentationFormat);
     InitializeDepthMapPipeline();
-    InitializeDepthFilterPipeline();
+    InitializeDepthFilterPipeline(vertexModule);
     InitializeThicknessMapPipeline();
-    InitializeThicknessFilterPipeline();
+    InitializeThicknessFilterPipeline(vertexModule);
+    InitializeFluidPipelines(presentationFormat, vertexModule);
 
     // textures
     CreateTextures(screenSize);
 
     // bind group
-    InitializeFluidBindGroups(renderUniformBuffer);
     InitializeDepthMapBindGroups(renderUniformBuffer, posvelBuffer);
     InitializeDepthFilterBindGroups(renderUniformBuffer);
     InitializeThicknessMapBindGroups(renderUniformBuffer, posvelBuffer);
     InitializeThicknessFilterBindGroups(renderUniformBuffer);
+    InitializeFluidBindGroups(renderUniformBuffer);
 }
 
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
@@ -55,11 +58,10 @@ void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
     DrawFluid(commandEncoder, targetView);
 }
 
-void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat)
+void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat,
+                                             wgpu::ShaderModule vertexModule)
 {
     // shader module
-    wgpu::ShaderModule vertexModule =
-        ResourceManager::LoadShaderModule("resources/shader/render/fullScreen.wgsl", mDevice);
     wgpu::ShaderModule fluidModule =
         ResourceManager::LoadShaderModule("resources/shader/render/fluid.wgsl", mDevice);
 
@@ -88,9 +90,9 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     // The thickness texture binding
     wgpu::BindGroupLayoutEntry& thicknessTextureBindingLayout = fluidBindingLayoutEentries[3];
     WebGPUUtils::SetDefaultBindGroupLayout(thicknessTextureBindingLayout);
-    thicknessTextureBindingLayout.binding            = 3;
-    thicknessTextureBindingLayout.visibility         = wgpu::ShaderStage::Fragment;
-    thicknessTextureBindingLayout.texture.sampleType = wgpu::TextureSampleType::UnfilterableFloat;
+    thicknessTextureBindingLayout.binding               = 3;
+    thicknessTextureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
+    thicknessTextureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::Float;
     thicknessTextureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::e2D;
     // The envmap texture binding
     wgpu::BindGroupLayoutEntry& envmapTextureBindingLayout = fluidBindingLayoutEentries[4];
@@ -153,17 +155,9 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
 {
     // Create a sampler
     wgpu::SamplerDescriptor samplerDesc;
-    samplerDesc.addressModeU  = wgpu::AddressMode::Repeat;
-    samplerDesc.addressModeV  = wgpu::AddressMode::Repeat;
-    samplerDesc.addressModeW  = wgpu::AddressMode::ClampToEdge;
-    samplerDesc.magFilter     = wgpu::FilterMode::Linear;
-    samplerDesc.minFilter     = wgpu::FilterMode::Linear;
-    samplerDesc.mipmapFilter  = wgpu::MipmapFilterMode::Linear;
-    samplerDesc.lodMinClamp   = 0.0f;
-    samplerDesc.lodMaxClamp   = 8.0f;
-    samplerDesc.compare       = wgpu::CompareFunction::Undefined;
-    samplerDesc.maxAnisotropy = 1;
-    wgpu::Sampler sampler     = mDevice.CreateSampler(&samplerDesc);
+    samplerDesc.magFilter = wgpu::FilterMode::Linear;
+    samplerDesc.minFilter = wgpu::FilterMode::Linear;
+    wgpu::Sampler sampler = mDevice.CreateSampler(&samplerDesc);
 
     wgpu::TextureView envmapTextureView {};
     const char* cubemapPaths[] = {"resources/texture/cubemap/posx.png",
@@ -272,11 +266,9 @@ void FluidRenderer::CreateDepthFilterUniform(float depthThreshold,
     queue.WriteBuffer(mFilterYUniformBuffer, 0, &mFilterYUniform, sizeof(FilterUniform));
 }
 
-void FluidRenderer::InitializeDepthFilterPipeline()
+void FluidRenderer::InitializeDepthFilterPipeline(wgpu::ShaderModule vertexModule)
 {
     // shader module
-    wgpu::ShaderModule vertexModule =
-        ResourceManager::LoadShaderModule("resources/shader/render/fullScreen.wgsl", mDevice);
     wgpu::ShaderModule depthFilterModule =
         ResourceManager::LoadShaderModule("resources/shader/render/bilateral.wgsl", mDevice);
 
@@ -322,27 +314,13 @@ void FluidRenderer::InitializeDepthFilterPipeline()
         .layout = mDepthFilterLayout,
         .vertex =
             {
-                .bufferCount   = 0,
-                .buffers       = nullptr,
-                .module        = vertexModule,
-                .entryPoint    = "vs",
-                .constantCount = 0,
-                .constants     = nullptr,
+                .module     = vertexModule,
+                .entryPoint = "vs",
             },
         .primitive =
             {
-                .topology         = wgpu::PrimitiveTopology::TriangleList,
-                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
-                .frontFace        = wgpu::FrontFace::CCW,
-                .cullMode         = wgpu::CullMode::None,
+                .topology = wgpu::PrimitiveTopology::TriangleList,
             },
-        .multisample =
-            {
-                .count                  = 1,
-                .mask                   = ~0u,
-                .alphaToCoverageEnabled = false,
-            },
-        .depthStencil = nullptr,
     };
 
     wgpu::ColorTargetState colorTarget {
@@ -519,25 +497,12 @@ void FluidRenderer::InitializeThicknessMapPipeline()
         .layout = mThicknessMapLayout,
         .vertex =
             {
-                .bufferCount   = 0,
-                .buffers       = nullptr,
-                .module        = thicknessMapModule,
-                .entryPoint    = "vs",
-                .constantCount = 0,
-                .constants     = nullptr,
+                .module     = thicknessMapModule,
+                .entryPoint = "vs",
             },
         .primitive =
             {
-                .topology         = wgpu::PrimitiveTopology::TriangleList,
-                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
-                .frontFace        = wgpu::FrontFace::CCW,
-                .cullMode         = wgpu::CullMode::None,
-            },
-        .multisample =
-            {
-                .count                  = 1,
-                .mask                   = ~0u,
-                .alphaToCoverageEnabled = false,
+                .topology = wgpu::PrimitiveTopology::TriangleList,
             },
     };
 
@@ -632,11 +597,9 @@ void FluidRenderer::DrawThicknessMap(wgpu::CommandEncoder& commandEncoder, uint3
     renderPass.End();
 }
 
-void FluidRenderer::InitializeThicknessFilterPipeline()
+void FluidRenderer::InitializeThicknessFilterPipeline(wgpu::ShaderModule vertexModule)
 {
     // shader module
-    wgpu::ShaderModule vertexModule =
-        ResourceManager::LoadShaderModule("resources/shader/render/fullScreen.wgsl", mDevice);
     wgpu::ShaderModule thicknessFilterModule =
         ResourceManager::LoadShaderModule("resources/shader/render/gaussian.wgsl", mDevice);
 
@@ -682,27 +645,13 @@ void FluidRenderer::InitializeThicknessFilterPipeline()
         .layout = mThicknessFilterLayout,
         .vertex =
             {
-                .bufferCount   = 0,
-                .buffers       = nullptr,
-                .module        = vertexModule,
-                .entryPoint    = "vs",
-                .constantCount = 0,
-                .constants     = nullptr,
+                .module     = vertexModule,
+                .entryPoint = "vs",
             },
         .primitive =
             {
-                .topology         = wgpu::PrimitiveTopology::TriangleList,
-                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
-                .frontFace        = wgpu::FrontFace::CCW,
-                .cullMode         = wgpu::CullMode::None,
+                .topology = wgpu::PrimitiveTopology::TriangleList,
             },
-        .multisample =
-            {
-                .count                  = 1,
-                .mask                   = ~0u,
-                .alphaToCoverageEnabled = false,
-            },
-        .depthStencil = nullptr,
     };
 
     wgpu::ColorTargetState colorTarget {
@@ -930,25 +879,12 @@ void FluidRenderer::InitializeDepthMapPipeline()
         .layout = mDepthMapLayout,
         .vertex =
             {
-                .bufferCount   = 0,
-                .buffers       = nullptr,
-                .module        = depthMapModule,
-                .entryPoint    = "vs",
-                .constantCount = 0,
-                .constants     = nullptr,
+                .module     = depthMapModule,
+                .entryPoint = "vs",
             },
         .primitive =
             {
-                .topology         = wgpu::PrimitiveTopology::TriangleList,
-                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
-                .frontFace        = wgpu::FrontFace::CCW,
-                .cullMode         = wgpu::CullMode::None,
-            },
-        .multisample =
-            {
-                .count                  = 1,
-                .mask                   = ~0u,
-                .alphaToCoverageEnabled = false,
+                .topology = wgpu::PrimitiveTopology::TriangleList,
             },
     };
 
@@ -993,7 +929,7 @@ void FluidRenderer::InitializeDepthMapBindGroups(wgpu::Buffer renderUniformBuffe
     bindings[1].size    = posvelBuffer.GetSize();
 
     wgpu::BindGroupDescriptor bindGroupDesc {
-        .label      = WebGPUUtils::GenerateString("fluid bind group"),
+        .label      = WebGPUUtils::GenerateString("depth map bind group"),
         .layout     = mDepthMapBindGroupLayout,
         .entryCount = static_cast<uint32_t>(bindings.size()),
         .entries    = bindings.data(),
@@ -1023,7 +959,7 @@ void FluidRenderer::DrawDepthMap(wgpu::CommandEncoder& commandEncoder, uint32_t 
     // Create the render pass that clears the screen with our color
     wgpu::RenderPassDescriptor renderPassDesc {
         .nextInChain            = nullptr,
-        .label                  = WebGPUUtils::GenerateString("fluid render Pass"),
+        .label                  = WebGPUUtils::GenerateString("depth map render Pass"),
         .colorAttachmentCount   = 1,
         .colorAttachments       = &renderPassColorAttachment,
         .depthStencilAttachment = &depthStencilAttachment,

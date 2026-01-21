@@ -1,6 +1,7 @@
 #include "Camera.h"
 #include <glm/gtc/constants.hpp>
 #include <glm/ext.hpp>
+#include <iostream>
 
 #include "Application.h"
 
@@ -32,7 +33,7 @@ void Camera::Reset(RenderUniforms& renderUniforms,
     this->zoomRate        = zoomRate;
 
     float aspect    = windowSize.x / windowSize.y;
-    auto projection = glm::perspective(this->fov, aspect, 0.1f, 500.0f);
+    auto projection = glm::perspective(this->fov, aspect, 0.1f, 1000.0f);
 
     renderUniforms.projectionMatrix    = projection;
     renderUniforms.invProjectionMatrix = glm::inverse(projection);
@@ -45,12 +46,18 @@ void Camera::RecalculateView(RenderUniforms& renderUniforms)
     auto mat = glm::mat4(1.0f);
     mat *= glm::translate(mat, this->target);
     mat *= glm::rotate(mat, this->currentXTheta, glm::vec3(1.0f, 0.0f, 0.0f));
-    mat *= glm::rotate(mat, this->currentXTheta, glm::vec3(0.0f, 1.0f, 0.0f));
+    mat *= glm::rotate(mat, this->currentYTheta, glm::vec3(0.0f, 1.0f, 0.0f));
     mat *= glm::translate(mat, glm::vec3(0.0f, 0.0f, this->currentDistance));
 
-    auto position = glm::vec3(mat[3]);
+    glm::vec4 position       = mat * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec3 cameraPosition = glm::vec3(position.x, position.y, position.z);
 
-    auto view = glm::lookAt(position, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
+    std::cout << "cameraPosition = { " << cameraPosition.x << ", " << cameraPosition.y << ", "
+              << cameraPosition.z << " }" << std::endl;
+    std::cout << "target = { " << target.x << ", " << target.y << ", " << target.z << " }"
+              << std::endl;
+
+    auto view = glm::lookAt(cameraPosition, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
 
     renderUniforms.viewMatrix    = view;
     renderUniforms.invViewMatrix = glm::inverse(view);

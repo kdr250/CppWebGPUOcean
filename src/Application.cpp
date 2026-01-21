@@ -27,7 +27,9 @@ bool Application::Initialize()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     // create window
-    mWindow = glfwCreateWindow(640, 480, "WebGPU Ocean", nullptr, nullptr);
+    glm::vec2 windowSize(1024.0f, 768.0f);
+    mWindow =
+        glfwCreateWindow((int)windowSize.x, (int)windowSize.y, "WebGPU Ocean", nullptr, nullptr);
     if (!mWindow)
     {
         glfwTerminate();
@@ -99,8 +101,8 @@ bool Application::Initialize()
         .nextInChain = nullptr,
 
         // Configuration of the textures created for the underlying swap chain
-        .width  = 640,
-        .height = 480,
+        .width  = (uint32_t)windowSize.x,
+        .height = (uint32_t)windowSize.y,
         .usage  = wgpu::TextureUsage::RenderAttachment,
         .format = mSurfaceFormat,
 
@@ -116,17 +118,18 @@ bool Application::Initialize()
 
     InitializeBuffers();
 
-    mRenderUniforms.screenSize = glm::vec2(640, 480);
+    mRenderUniforms.screenSize = windowSize;
+    mRenderUniforms.texelSize  = glm::vec2(1.0f / windowSize.x, 1.0 / windowSize.y);
 
     // FIXME
-    float fov = 45.0f * glm::pi<float>() / 180.0f;
-    mCamera   = std::make_unique<Camera>();
-    mCamera->Reset(mRenderUniforms,
-                   mRenderUniforms.screenSize,
-                   2.6f,
-                   glm::vec3(0.0f, 0.0f, 1.0f),
-                   fov,
-                   0.05f);
+    float fov          = 45.0f * glm::pi<float>() / 180.0f;
+    float initDistance = 2.6f;
+    glm::vec3 target(0.0f, -1.9f, 0.0f);
+    float zoomRate = 0.05f;
+
+    mCamera = std::make_unique<Camera>();
+    mCamera
+        ->Reset(mRenderUniforms, mRenderUniforms.screenSize, initDistance, target, fov, zoomRate);
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
@@ -224,6 +227,13 @@ void Application::InitializeParticles(const glm::vec3& initHalfBoxSize, uint32_t
                 particleCount++;
             }
         }
+    }
+
+    for (int i = 0; i < 100; ++i)
+    {
+        auto pos = mPosvel[i].position;
+        std::cout << "particle " << i << ": { " << pos.x << ", " << pos.y << ", " << pos.z << " }"
+                  << std::endl;
     }
 }
 

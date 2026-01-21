@@ -7,13 +7,13 @@ struct VertexOutput {
 }
 
 struct RenderUniforms {
-    screenSize: vec2f,
-    texelSize: vec2f,
-    sphereSize: f32,
-    invProjectionMatrix: mat4x4f,
-    projectionMatrix: mat4x4f,
-    viewMatrix: mat4x4f,
-    invViewMatrix: mat4x4f,
+    screen_size: vec2f,
+    texel_size: vec2f, 
+    sphere_size: f32, 
+    inv_projection_matrix: mat4x4f, 
+    projection_matrix: mat4x4f, 
+    view_matrix: mat4x4f, 
+    inv_view_matrix: mat4x4f,
 }
 
 @vertex
@@ -40,7 +40,7 @@ fn vs(@builtin(vertex_index) vertex_index : u32) -> VertexOutput {
 
     out.position = vec4(pos[vertex_index], 0.0, 1.0);
     out.uv = uv[vertex_index];
-    out.iuv = out.uv * uniforms.screenSize;
+    out.iuv = out.uv * uniforms.screen_size;
 
     return out;
 }

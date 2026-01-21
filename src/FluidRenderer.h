@@ -30,7 +30,8 @@ public:
 
 private:
     // Fluid
-    void InitializeFluidPipelines(wgpu::TextureFormat presentationFormat);
+    void InitializeFluidPipelines(wgpu::TextureFormat presentationFormat,
+                                  wgpu::ShaderModule vertexModule);
     void InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer);
     void DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView);
 
@@ -43,7 +44,7 @@ private:
     void CreateDepthFilterUniform(float depthThreshold,
                                   float projectedParticleConstant,
                                   float maxFilterSize);
-    void InitializeDepthFilterPipeline();
+    void InitializeDepthFilterPipeline(wgpu::ShaderModule vertexModule);
     void InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBuffer);
     void DrawDepthFilter(wgpu::CommandEncoder& commandEncoder);
 
@@ -54,7 +55,7 @@ private:
     void DrawThicknessMap(wgpu::CommandEncoder& commandEncoder, uint32_t numParticles);
 
     // Thickness filter
-    void InitializeThicknessFilterPipeline();
+    void InitializeThicknessFilterPipeline(wgpu::ShaderModule vertexModule);
     void InitializeThicknessFilterBindGroups(wgpu::Buffer renderUniformBuffer);
     void DrawThicknessFilter(wgpu::CommandEncoder& commandEncoder);
 
