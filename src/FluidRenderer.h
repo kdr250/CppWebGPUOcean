@@ -59,6 +59,13 @@ private:
     void InitializeThicknessFilterBindGroups(wgpu::Buffer renderUniformBuffer);
     void DrawThicknessFilter(wgpu::CommandEncoder& commandEncoder);
 
+    // Sphere
+    void InitializeSpherePipelines(wgpu::TextureFormat presentationFormat);
+    void InitializeSphereBindGroups(wgpu::Buffer renderUniformBuffer, wgpu::Buffer posvelBuffer);
+    void DrawSphere(wgpu::CommandEncoder& commandEncoder,
+                    wgpu::TextureView targetView,
+                    uint32_t numParticles);
+
     void CreateTextures(const glm::vec2& textureSize);
 
 private:
@@ -97,6 +104,12 @@ private:
     wgpu::BindGroupLayout mThicknessFilterBindGroupLayout;
     wgpu::BindGroup mThicknessFilterBindGroups[2];
     wgpu::RenderPipeline mThicknessFilterPipeline;
+
+    // Sphere
+    wgpu::PipelineLayout mSphereLayout;
+    wgpu::BindGroupLayout mSphereBindGroupLayout;
+    wgpu::BindGroup mSphereBindGroup;
+    wgpu::RenderPipeline mSpherePipeline;
 
     // Texture Views
     wgpu::TextureView mDepthMapTextureView;

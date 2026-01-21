@@ -35,6 +35,7 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     InitializeThicknessMapPipeline();
     InitializeThicknessFilterPipeline(vertexModule);
     InitializeFluidPipelines(presentationFormat, vertexModule);
+    InitializeSpherePipelines(presentationFormat);
 
     // textures
     CreateTextures(screenSize);
@@ -45,17 +46,20 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     InitializeThicknessMapBindGroups(renderUniformBuffer, posvelBuffer);
     InitializeThicknessFilterBindGroups(renderUniformBuffer);
     InitializeFluidBindGroups(renderUniformBuffer);
+    InitializeSphereBindGroups(renderUniformBuffer, posvelBuffer);
 }
 
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
                          wgpu::TextureView targetView,
                          uint32_t numParticles)
 {
-    DrawDepthMap(commandEncoder, numParticles);
-    DrawDepthFilter(commandEncoder);
-    DrawThicknessMap(commandEncoder, numParticles);
-    DrawThicknessFilter(commandEncoder);
-    DrawFluid(commandEncoder, targetView);
+    // DrawDepthMap(commandEncoder, numParticles);
+    // DrawDepthFilter(commandEncoder);
+    // DrawThicknessMap(commandEncoder, numParticles);
+    // DrawThicknessFilter(commandEncoder);
+    // DrawFluid(commandEncoder, targetView);
+
+    DrawSphere(commandEncoder, targetView, numParticles);
 }
 
 void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat,
@@ -785,6 +789,147 @@ void FluidRenderer::DrawThicknessFilter(wgpu::CommandEncoder& commandEncoder)
         thicknessFilterPassEncoderY.Draw(6, 1, 0, 0);
         thicknessFilterPassEncoderY.End();
     }
+}
+
+void FluidRenderer::InitializeSpherePipelines(wgpu::TextureFormat presentationFormat)
+{
+    // shader module
+    wgpu::ShaderModule sphereModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/sphere.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(2);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
+    bindingLayout.binding               = 0;
+    bindingLayout.visibility            = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
+    bindingLayout.buffer.type           = wgpu::BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(RenderUniforms);
+    // The positions binding
+    wgpu::BindGroupLayoutEntry& posvelBindingLayout = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(posvelBindingLayout);
+    posvelBindingLayout.binding               = 1;
+    posvelBindingLayout.visibility            = wgpu::ShaderStage::Vertex;
+    posvelBindingLayout.buffer.type           = wgpu::BufferBindingType::ReadOnlyStorage;
+    posvelBindingLayout.buffer.minBindingSize = sizeof(PosVel) * NUM_PARTICLES_MAX;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mSphereBindGroupLayout         = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mSphereBindGroupLayout;
+    mSphereLayout                   = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::RenderPipelineDescriptor renderPipelineDesc {
+        .label  = WebGPUUtils::GenerateString("sphere pipeline"),
+        .layout = mSphereLayout,
+        .vertex =
+            {
+                .module     = sphereModule,
+                .entryPoint = "vs",
+            },
+        .primitive =
+            {
+                .topology = wgpu::PrimitiveTopology::TriangleList,
+            },
+    };
+
+    wgpu::DepthStencilState depthStencilState {
+        .depthWriteEnabled = true,
+        .depthCompare      = wgpu::CompareFunction::Less,
+        .format            = wgpu::TextureFormat::Depth32Float,
+    };
+    renderPipelineDesc.depthStencil = &depthStencilState;
+
+    wgpu::ColorTargetState colorTarget {
+        .format = presentationFormat,
+    };
+
+    wgpu::FragmentState fragmentState {
+        .module        = sphereModule,
+        .entryPoint    = "fs",
+        .constantCount = 0,
+        .constants     = nullptr,
+        .targetCount   = 1,
+        .targets       = &colorTarget,
+    };
+
+    renderPipelineDesc.fragment = &fragmentState;
+
+    mSpherePipeline = mDevice.CreateRenderPipeline(&renderPipelineDesc);
+}
+
+void FluidRenderer::InitializeSphereBindGroups(wgpu::Buffer renderUniformBuffer,
+                                               wgpu::Buffer posvelBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(2);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = renderUniformBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = sizeof(RenderUniforms);
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = posvelBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = posvelBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("depth map bind group"),
+        .layout     = mSphereBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mSphereBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void FluidRenderer::DrawSphere(wgpu::CommandEncoder& commandEncoder,
+                               wgpu::TextureView targetView,
+                               uint32_t numParticles)
+{
+    // The attachment part of the render pass descriptor describes the target texture of the pass
+    wgpu::RenderPassColorAttachment renderPassColorAttachment {
+        .view          = targetView,
+        .resolveTarget = nullptr,
+        .loadOp        = wgpu::LoadOp::Clear,
+        .storeOp       = wgpu::StoreOp::Store,
+        .clearValue    = wgpu::Color {0.8, 0.8, 0.8, 1.0},
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+    };
+
+    wgpu::RenderPassDepthStencilAttachment depthStencilAttachment {
+        .view            = mDepthTestTextureView,
+        .depthClearValue = 1.0f,
+        .depthLoadOp     = wgpu::LoadOp::Clear,
+        .depthStoreOp    = wgpu::StoreOp::Store,
+    };
+
+    // Create the render pass that clears the screen with our color
+    wgpu::RenderPassDescriptor renderPassDesc {
+        .nextInChain            = nullptr,
+        .label                  = WebGPUUtils::GenerateString("sphere render Pass"),
+        .colorAttachmentCount   = 1,
+        .colorAttachments       = &renderPassColorAttachment,
+        .depthStencilAttachment = &depthStencilAttachment,
+        .timestampWrites        = nullptr,
+    };
+
+    // Create the render pass and end it immediately (we only clear the screen but do not draw anything)
+    wgpu::RenderPassEncoder renderPass = commandEncoder.BeginRenderPass(&renderPassDesc);
+
+    // Select which render pipeline to use
+    renderPass.SetPipeline(mSpherePipeline);
+    renderPass.SetBindGroup(0, mSphereBindGroup, 0, nullptr);
+    renderPass.Draw(6, numParticles, 0, 0);
+
+    renderPass.End();
 }
 
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
