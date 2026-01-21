@@ -56,6 +56,7 @@ private:
     // Thickness filter
     void InitializeThicknessFilterPipeline();
     void InitializeThicknessFilterBindGroups(wgpu::Buffer renderUniformBuffer);
+    void DrawThicknessFilter(wgpu::CommandEncoder& commandEncoder);
 
     void CreateTextures(const glm::vec2& textureSize);
 

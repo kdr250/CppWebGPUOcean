@@ -51,6 +51,7 @@ void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
     DrawDepthMap(commandEncoder, numParticles);
     DrawDepthFilter(commandEncoder);
     DrawThicknessMap(commandEncoder, numParticles);
+    DrawThicknessFilter(commandEncoder);
     DrawFluid(commandEncoder, targetView);
 }
 
@@ -87,9 +88,9 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     // The thickness texture binding
     wgpu::BindGroupLayoutEntry& thicknessTextureBindingLayout = fluidBindingLayoutEentries[3];
     WebGPUUtils::SetDefaultBindGroupLayout(thicknessTextureBindingLayout);
-    thicknessTextureBindingLayout.binding               = 3;
-    thicknessTextureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
-    thicknessTextureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::Float;
+    thicknessTextureBindingLayout.binding            = 3;
+    thicknessTextureBindingLayout.visibility         = wgpu::ShaderStage::Fragment;
+    thicknessTextureBindingLayout.texture.sampleType = wgpu::TextureSampleType::UnfilterableFloat;
     thicknessTextureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::e2D;
     // The envmap texture binding
     wgpu::BindGroupLayoutEntry& envmapTextureBindingLayout = fluidBindingLayoutEentries[4];
@@ -126,39 +127,12 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
             },
         .primitive =
             {
-                .topology         = wgpu::PrimitiveTopology::TriangleList,
-                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
-                .frontFace        = wgpu::FrontFace::CCW,
-                .cullMode         = wgpu::CullMode::None,
-            },
-        .depthStencil = nullptr,
-        .multisample =
-            {
-                .count                  = 1,
-                .mask                   = ~0u,
-                .alphaToCoverageEnabled = false,
-            },
-    };
-
-    wgpu::BlendState blendState {
-        .color =
-            {
-                .srcFactor = wgpu::BlendFactor::SrcAlpha,
-                .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-                .operation = wgpu::BlendOperation::Add,
-            },
-        .alpha =
-            {
-                .srcFactor = wgpu::BlendFactor::Zero,
-                .dstFactor = wgpu::BlendFactor::One,
-                .operation = wgpu::BlendOperation::Add,
+                .topology = wgpu::PrimitiveTopology::TriangleList,
             },
     };
 
     wgpu::ColorTargetState colorTarget {
-        .format    = presentationFormat,
-        .blend     = &blendState,
-        .writeMask = wgpu::ColorWriteMask::All,
+        .format = presentationFormat,
     };
 
     wgpu::FragmentState fragmentState {
@@ -191,11 +165,6 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
     samplerDesc.maxAnisotropy = 1;
     wgpu::Sampler sampler     = mDevice.CreateSampler(&samplerDesc);
 
-    // FIXME
-    wgpu::TextureView textureView {};
-    ResourceManager::LoadTexture("resources/texture/test.png", mDevice, &textureView);
-    wgpu::TextureView thicknessTextureView {};
-    ResourceManager::LoadTexture("resources/texture/test2.png", mDevice, &thicknessTextureView);
     wgpu::TextureView envmapTextureView {};
     const char* cubemapPaths[] = {"resources/texture/cubemap/posx.png",
                                   "resources/texture/cubemap/negx.png",
@@ -219,7 +188,7 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
     bindings[2].sampler = sampler;
 
     bindings[3].binding     = 3;
-    bindings[3].textureView = thicknessTextureView;
+    bindings[3].textureView = mThicknessMapTextureView;
 
     bindings[4].binding     = 4;
     bindings[4].textureView = envmapTextureView;
@@ -801,6 +770,72 @@ void FluidRenderer::InitializeThicknessFilterBindGroups(wgpu::Buffer renderUnifo
     bindGroupDesc.entryCount      = static_cast<uint32_t>(bindings.size());
     bindGroupDesc.entries         = bindings.data();
     mThicknessFilterBindGroups[1] = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void FluidRenderer::DrawThicknessFilter(wgpu::CommandEncoder& commandEncoder)
+{
+    std::vector<wgpu::RenderPassDescriptor> renderPassDescs(2);
+
+    // filter X
+    {
+        wgpu::RenderPassColorAttachment renderPassColorAttachment {
+            .view          = mTmpThicknessMapTextureView,
+            .resolveTarget = nullptr,
+            .loadOp        = wgpu::LoadOp::Clear,
+            .storeOp       = wgpu::StoreOp::Store,
+            .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+            .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+        };
+
+        wgpu::RenderPassDescriptor renderPassDescriptor {
+            .nextInChain            = nullptr,
+            .label                  = WebGPUUtils::GenerateString("thickness filter X render Pass"),
+            .colorAttachmentCount   = 1,
+            .colorAttachments       = &renderPassColorAttachment,
+            .depthStencilAttachment = nullptr,
+            .timestampWrites        = nullptr,
+        };
+
+        renderPassDescs[0] = renderPassDescriptor;
+    }
+
+    // filter Y
+    {
+        wgpu::RenderPassColorAttachment renderPassColorAttachment {
+            .view          = mThicknessMapTextureView,
+            .resolveTarget = nullptr,
+            .loadOp        = wgpu::LoadOp::Clear,
+            .storeOp       = wgpu::StoreOp::Store,
+            .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+            .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+        };
+
+        wgpu::RenderPassDescriptor renderPassDescriptor {
+            .nextInChain            = nullptr,
+            .label                  = WebGPUUtils::GenerateString("thickness filter Y render Pass"),
+            .colorAttachmentCount   = 1,
+            .colorAttachments       = &renderPassColorAttachment,
+            .depthStencilAttachment = nullptr,
+            .timestampWrites        = nullptr,
+        };
+
+        renderPassDescs[1] = renderPassDescriptor;
+    }
+
+    for (int i = 0; i < 1; ++i)
+    {
+        auto thicknessFilterPassEncoderX = commandEncoder.BeginRenderPass(&renderPassDescs[0]);
+        thicknessFilterPassEncoderX.SetBindGroup(0, mThicknessFilterBindGroups[0], 0, nullptr);
+        thicknessFilterPassEncoderX.SetPipeline(mThicknessFilterPipeline);
+        thicknessFilterPassEncoderX.Draw(6, 1, 0, 0);
+        thicknessFilterPassEncoderX.End();
+
+        auto thicknessFilterPassEncoderY = commandEncoder.BeginRenderPass(&renderPassDescs[1]);
+        thicknessFilterPassEncoderY.SetBindGroup(0, mThicknessFilterBindGroups[1], 0, nullptr);
+        thicknessFilterPassEncoderY.SetPipeline(mThicknessFilterPipeline);
+        thicknessFilterPassEncoderY.Draw(6, 1, 0, 0);
+        thicknessFilterPassEncoderY.End();
+    }
 }
 
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
