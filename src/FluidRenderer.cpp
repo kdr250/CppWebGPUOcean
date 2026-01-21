@@ -41,6 +41,7 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     InitializeDepthMapBindGroups(renderUniformBuffer, posvelBuffer);
     InitializeDepthFilterBindGroups(renderUniformBuffer);
     InitializeThicknessMapBindGroups(renderUniformBuffer, posvelBuffer);
+    InitializeThicknessFilterBindGroups(renderUniformBuffer);
 }
 
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
@@ -751,6 +752,55 @@ void FluidRenderer::InitializeThicknessFilterPipeline()
     renderPipelineDesc.fragment = &fragmentState;
 
     mThicknessFilterPipeline = mDevice.CreateRenderPipeline(&renderPipelineDesc);
+}
+
+void FluidRenderer::InitializeThicknessFilterBindGroups(wgpu::Buffer renderUniformBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(3);
+
+    // filter X
+    bindings[0].binding = 0;
+    bindings[0].buffer  = renderUniformBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = sizeof(RenderUniforms);
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mFilterXUniformBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = sizeof(FilterUniform);
+
+    bindings[2].binding     = 2;
+    bindings[2].textureView = mThicknessMapTextureView;
+
+    wgpu::BindGroupDescriptor bindGroupDesc {};
+    bindGroupDesc.label           = WebGPUUtils::GenerateString("depth filterX bind group");
+    bindGroupDesc.layout          = mThicknessFilterBindGroupLayout;
+    bindGroupDesc.entryCount      = static_cast<uint32_t>(bindings.size());
+    bindGroupDesc.entries         = bindings.data();
+    mThicknessFilterBindGroups[0] = mDevice.CreateBindGroup(&bindGroupDesc);
+
+    bindings.clear();
+    bindings.resize(3);
+
+    // filter Y
+    bindings[0].binding = 0;
+    bindings[0].buffer  = renderUniformBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = sizeof(RenderUniforms);
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mFilterYUniformBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = sizeof(FilterUniform);
+
+    bindings[2].binding     = 2;
+    bindings[2].textureView = mTmpThicknessMapTextureView;
+
+    bindGroupDesc.label           = WebGPUUtils::GenerateString("depth filterY bind group");
+    bindGroupDesc.layout          = mThicknessFilterBindGroupLayout;
+    bindGroupDesc.entryCount      = static_cast<uint32_t>(bindings.size());
+    bindGroupDesc.entries         = bindings.data();
+    mThicknessFilterBindGroups[1] = mDevice.CreateBindGroup(&bindGroupDesc);
 }
 
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
