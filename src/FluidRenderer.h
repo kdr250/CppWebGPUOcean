@@ -45,6 +45,7 @@ private:
                                   float maxFilterSize);
     void InitializeDepthFilterPipeline();
     void InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBuffer);
+    void DrawDepthFilter(wgpu::CommandEncoder& commandEncoder);
 
     void CreateTextures(const glm::vec2& textureSize);
 

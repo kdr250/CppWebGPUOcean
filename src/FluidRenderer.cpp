@@ -44,8 +44,9 @@ void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
                          wgpu::TextureView targetView,
                          uint32_t numParticles)
 {
-    DrawFluid(commandEncoder, targetView);
     DrawDepthMap(commandEncoder, numParticles);
+    DrawDepthFilter(commandEncoder);
+    DrawFluid(commandEncoder, targetView);
 }
 
 void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat)
@@ -413,6 +414,9 @@ void FluidRenderer::InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBu
     bindGroupDesc.entries     = bindings.data();
     mDepthFilterBindGroups[0] = mDevice.CreateBindGroup(&bindGroupDesc);
 
+    bindings.clear();
+    bindings.resize(3);
+
     // filter Y
     bindings[0].binding = 0;
     bindings[0].buffer  = renderUniformBuffer;
@@ -420,18 +424,84 @@ void FluidRenderer::InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBu
     bindings[0].size    = sizeof(RenderUniforms);
 
     bindings[1].binding = 1;
-    bindings[1].buffer  = mFilterXUniformBuffer;
+    bindings[1].buffer  = mFilterYUniformBuffer;
     bindings[1].offset  = 0;
     bindings[1].size    = sizeof(FilterUniform);
 
     bindings[2].binding     = 2;
-    bindings[2].textureView = mDepthMapTextureView;
+    bindings[2].textureView = mTmpDepthMapTextureView;
 
     bindGroupDesc.label       = WebGPUUtils::GenerateString("depth filterY bind group");
     bindGroupDesc.layout      = mDepthFilterBindGroupLayout;
     bindGroupDesc.entryCount  = static_cast<uint32_t>(bindings.size());
     bindGroupDesc.entries     = bindings.data();
     mDepthFilterBindGroups[1] = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void FluidRenderer::DrawDepthFilter(wgpu::CommandEncoder& commandEncoder)
+{
+    std::vector<wgpu::RenderPassDescriptor> renderPassDescs(2);
+
+    // filter X
+    {
+        wgpu::RenderPassColorAttachment renderPassColorAttachment {
+            .view          = mTmpDepthMapTextureView,
+            .resolveTarget = nullptr,
+            .loadOp        = wgpu::LoadOp::Clear,
+            .storeOp       = wgpu::StoreOp::Store,
+            .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+            .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+        };
+
+        wgpu::RenderPassDescriptor renderPassDescriptor {
+            .nextInChain            = nullptr,
+            .label                  = WebGPUUtils::GenerateString("depth filter X render Pass"),
+            .colorAttachmentCount   = 1,
+            .colorAttachments       = &renderPassColorAttachment,
+            .depthStencilAttachment = nullptr,
+            .timestampWrites        = nullptr,
+        };
+
+        renderPassDescs[0] = renderPassDescriptor;
+    }
+
+    // filter Y
+    {
+        wgpu::RenderPassColorAttachment renderPassColorAttachment {
+            .view          = mDepthMapTextureView,
+            .resolveTarget = nullptr,
+            .loadOp        = wgpu::LoadOp::Clear,
+            .storeOp       = wgpu::StoreOp::Store,
+            .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+            .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+        };
+
+        wgpu::RenderPassDescriptor renderPassDescriptor {
+            .nextInChain            = nullptr,
+            .label                  = WebGPUUtils::GenerateString("depth filter Y render Pass"),
+            .colorAttachmentCount   = 1,
+            .colorAttachments       = &renderPassColorAttachment,
+            .depthStencilAttachment = nullptr,
+            .timestampWrites        = nullptr,
+        };
+
+        renderPassDescs[1] = renderPassDescriptor;
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        auto depthFilterPassEncoderX = commandEncoder.BeginRenderPass(&renderPassDescs[0]);
+        depthFilterPassEncoderX.SetBindGroup(0, mDepthFilterBindGroups[0], 0, nullptr);
+        depthFilterPassEncoderX.SetPipeline(mDepthFilterPipeline);
+        depthFilterPassEncoderX.Draw(6, 1, 0, 0);
+        depthFilterPassEncoderX.End();
+
+        auto depthFilterPassEncoderY = commandEncoder.BeginRenderPass(&renderPassDescs[1]);
+        depthFilterPassEncoderY.SetBindGroup(0, mDepthFilterBindGroups[1], 0, nullptr);
+        depthFilterPassEncoderY.SetPipeline(mDepthFilterPipeline);
+        depthFilterPassEncoderY.Draw(6, 1, 0, 0);
+        depthFilterPassEncoderY.End();
+    }
 }
 
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
