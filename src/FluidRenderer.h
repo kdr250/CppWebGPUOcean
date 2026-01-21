@@ -19,6 +19,8 @@ public:
     FluidRenderer(wgpu::Device device,
                   const glm::vec2& screenSize,
                   wgpu::TextureFormat presentationFormat,
+                  float radius,
+                  float fov,
                   wgpu::Buffer renderUniformBuffer,
                   wgpu::Buffer posvelBuffer);
 
@@ -38,7 +40,9 @@ private:
     void DrawDepthMap(wgpu::CommandEncoder& commandEncoder, uint32_t numParticles);
 
     // Depth filter
-    void CreateDepthFilterUniform();
+    void CreateDepthFilterUniform(float depthThreshold,
+                                  float projectedParticleConstant,
+                                  float maxFilterSize);
     void InitializeDepthFilterPipeline();
     void InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBuffer);
 
@@ -64,8 +68,10 @@ private:
     wgpu::BindGroupLayout mDepthFilterBindGroupLayout;
     wgpu::BindGroup mDepthFilterBindGroups[2];
     wgpu::RenderPipeline mDepthFilterPipeline;
-    wgpu::Buffer mDepthFilterUniformBuffer;
-    FilterUniform mFilterUniform;
+    wgpu::Buffer mFilterXUniformBuffer;
+    wgpu::Buffer mFilterYUniformBuffer;
+    FilterUniform mFilterXUniform;
+    FilterUniform mFilterYUniform;
 
     // Texture Views
     wgpu::TextureView mDepthMapTextureView;

@@ -119,12 +119,13 @@ bool Application::Initialize()
     mRenderUniforms.screenSize = glm::vec2(640, 480);
 
     // FIXME
-    mCamera = std::make_unique<Camera>();
+    float fov = 45.0f * glm::pi<float>() / 180.0f;
+    mCamera   = std::make_unique<Camera>();
     mCamera->Reset(mRenderUniforms,
                    mRenderUniforms.screenSize,
                    2.6f,
                    glm::vec3(0.0f, 0.0f, 1.0f),
-                   45.0f * glm::pi<float>() / 180.0f,
+                   fov,
                    0.05f);
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
@@ -132,9 +133,12 @@ bool Application::Initialize()
     InitializeParticles(glm::vec3(1.0f, 2.0f, 1.0f), 10000);
     mQueue.WriteBuffer(mPosvelBuffer, 0, mPosvel.data(), sizeof(PosVel) * mPosvel.size());
 
+    float radius   = 0.04;
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
                                                      mRenderUniforms.screenSize,
                                                      mSurfaceFormat,
+                                                     radius,
+                                                     fov,
                                                      mRenderUniformBuffer,
                                                      mPosvelBuffer);
 

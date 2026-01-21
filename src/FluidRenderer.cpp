@@ -10,9 +10,22 @@
 FluidRenderer::FluidRenderer(wgpu::Device device,
                              const glm::vec2& screenSize,
                              wgpu::TextureFormat presentationFormat,
+                             float radius,
+                             float fov,
                              wgpu::Buffer renderUniformBuffer,
                              wgpu::Buffer posvelBuffer) : mDevice(device)
 {
+    // buffer & uniform
+    float bluredDepthScale = 10.0f;
+    float diameter         = 2.0f * radius;
+    float blurFilterSize   = 12.0f;
+
+    float depthThreshold = radius * bluredDepthScale;
+    float projectedParticleConstant =
+        (blurFilterSize * diameter * 0.05f * (screenSize.y / 2.0f)) / std::tan(fov / 2.0f);
+    float maxFilterSize = 100.0f;
+    CreateDepthFilterUniform(depthThreshold, projectedParticleConstant, maxFilterSize);
+
     // pipeline
     InitializeFluidPipelines(presentationFormat);
     InitializeDepthMapPipeline();
@@ -246,9 +259,41 @@ void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::Textur
     renderPass.End();
 }
 
-void FluidRenderer::CreateDepthFilterUniform()
+void FluidRenderer::CreateDepthFilterUniform(float depthThreshold,
+                                             float projectedParticleConstant,
+                                             float maxFilterSize)
 {
-    // TODO
+    // create buffer
+    wgpu::BufferDescriptor bufferDesc {};
+    bufferDesc.label            = WebGPUUtils::GenerateString("filter X unioform buffer");
+    bufferDesc.size             = sizeof(FilterUniform);
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform;
+    bufferDesc.mappedAtCreation = false;
+
+    mFilterXUniformBuffer = mDevice.CreateBuffer(&bufferDesc);
+
+    bufferDesc.label            = WebGPUUtils::GenerateString("filter Y unioform buffer");
+    bufferDesc.size             = sizeof(FilterUniform);
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform;
+    bufferDesc.mappedAtCreation = false;
+
+    mFilterYUniformBuffer = mDevice.CreateBuffer(&bufferDesc);
+
+    // setupt uniform
+    mFilterXUniform.blurDir                   = glm::vec2(1.0f, 0.0f);
+    mFilterXUniform.depthThreshold            = depthThreshold;
+    mFilterXUniform.projectedParticleConstant = projectedParticleConstant;
+    mFilterXUniform.maxFilterSize             = maxFilterSize;
+
+    mFilterYUniform.blurDir                   = glm::vec2(0.0f, 1.0f);
+    mFilterYUniform.depthThreshold            = depthThreshold;
+    mFilterYUniform.projectedParticleConstant = projectedParticleConstant;
+    mFilterYUniform.maxFilterSize             = maxFilterSize;
+
+    // write buffer
+    wgpu::Queue queue = mDevice.GetQueue();
+    queue.WriteBuffer(mFilterXUniformBuffer, 0, &mFilterXUniform, sizeof(FilterUniform));
+    queue.WriteBuffer(mFilterYUniformBuffer, 0, &mFilterYUniform, sizeof(FilterUniform));
 }
 
 void FluidRenderer::InitializeDepthFilterPipeline()
@@ -352,7 +397,7 @@ void FluidRenderer::InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBu
     bindings[0].size    = sizeof(RenderUniforms);
 
     bindings[1].binding = 1;
-    bindings[1].buffer  = mDepthFilterUniformBuffer;
+    bindings[1].buffer  = mFilterXUniformBuffer;  // FIXME
     bindings[1].offset  = 0;
     bindings[1].size    = sizeof(FilterUniform);
 
