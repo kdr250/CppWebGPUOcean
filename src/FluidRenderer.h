@@ -53,6 +53,9 @@ private:
                                           wgpu::Buffer posvelBuffer);
     void DrawThicknessMap(wgpu::CommandEncoder& commandEncoder, uint32_t numParticles);
 
+    // Thickness filter
+    void InitializeThicknessFilterPipeline();
+
     void CreateTextures(const glm::vec2& textureSize);
 
 private:
@@ -85,6 +88,12 @@ private:
     wgpu::BindGroupLayout mThicknessMapBindGroupLayout;
     wgpu::BindGroup mThicknessMapBindGroup;
     wgpu::RenderPipeline mThicknessMapPipeline;
+
+    // Thickness filter
+    wgpu::PipelineLayout mThicknessFilterLayout;
+    wgpu::BindGroupLayout mThicknessFilterBindGroupLayout;
+    wgpu::BindGroup mThicknessFilterBindGroups[2];
+    wgpu::RenderPipeline mThicknessFilterPipeline;
 
     // Texture Views
     wgpu::TextureView mDepthMapTextureView;

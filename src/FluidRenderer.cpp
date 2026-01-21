@@ -31,6 +31,7 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     InitializeDepthMapPipeline();
     InitializeDepthFilterPipeline();
     InitializeThicknessMapPipeline();
+    InitializeThicknessFilterPipeline();
 
     // textures
     CreateTextures(screenSize);
@@ -659,6 +660,97 @@ void FluidRenderer::DrawThicknessMap(wgpu::CommandEncoder& commandEncoder, uint3
     renderPass.Draw(6, numParticles, 0, 0);
 
     renderPass.End();
+}
+
+void FluidRenderer::InitializeThicknessFilterPipeline()
+{
+    // shader module
+    wgpu::ShaderModule vertexModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/fullScreen.wgsl", mDevice);
+    wgpu::ShaderModule thicknessFilterModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/gaussian.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(3);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
+    bindingLayout.binding               = 0;
+    bindingLayout.visibility            = wgpu::ShaderStage::Vertex;
+    bindingLayout.buffer.type           = wgpu::BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(RenderUniforms);
+    // The filter uniform binding
+    wgpu::BindGroupLayoutEntry& filterUniformBindingLayout = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(filterUniformBindingLayout);
+    filterUniformBindingLayout.binding               = 1;
+    filterUniformBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
+    filterUniformBindingLayout.buffer.type           = wgpu::BufferBindingType::Uniform;
+    filterUniformBindingLayout.buffer.minBindingSize = sizeof(FilterUniform);
+    // The texture binding
+    wgpu::BindGroupLayoutEntry& textureBindingLayout = bindingLayoutEentries[2];
+    WebGPUUtils::SetDefaultBindGroupLayout(textureBindingLayout);
+    textureBindingLayout.binding               = 2;
+    textureBindingLayout.visibility            = wgpu::ShaderStage::Fragment;
+    textureBindingLayout.texture.sampleType    = wgpu::TextureSampleType::UnfilterableFloat;
+    textureBindingLayout.texture.viewDimension = wgpu::TextureViewDimension::e2D;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount  = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries     = bindingLayoutEentries.data();
+    mThicknessFilterBindGroupLayout = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mThicknessFilterBindGroupLayout;
+    mThicknessFilterLayout          = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::RenderPipelineDescriptor renderPipelineDesc {
+        .label  = WebGPUUtils::GenerateString("thickness filter rendering pipeline"),
+        .layout = mThicknessFilterLayout,
+        .vertex =
+            {
+                .bufferCount   = 0,
+                .buffers       = nullptr,
+                .module        = vertexModule,
+                .entryPoint    = "vs",
+                .constantCount = 0,
+                .constants     = nullptr,
+            },
+        .primitive =
+            {
+                .topology         = wgpu::PrimitiveTopology::TriangleList,
+                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
+                .frontFace        = wgpu::FrontFace::CCW,
+                .cullMode         = wgpu::CullMode::None,
+            },
+        .multisample =
+            {
+                .count                  = 1,
+                .mask                   = ~0u,
+                .alphaToCoverageEnabled = false,
+            },
+        .depthStencil = nullptr,
+    };
+
+    wgpu::ColorTargetState colorTarget {
+        .format = wgpu::TextureFormat::R16Float,
+    };
+
+    wgpu::FragmentState fragmentState {
+        .module        = thicknessFilterModule,
+        .entryPoint    = "fs",
+        .constantCount = 0,
+        .constants     = nullptr,
+        .targetCount   = 1,
+        .targets       = &colorTarget,
+    };
+
+    renderPipelineDesc.fragment = &fragmentState;
+
+    mThicknessFilterPipeline = mDevice.CreateRenderPipeline(&renderPipelineDesc);
 }
 
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
