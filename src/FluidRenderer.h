@@ -49,6 +49,8 @@ private:
 
     // Thickness map
     void InitializeThicknessMapPipeline();
+    void InitializeThicknessMapBindGroups(wgpu::Buffer renderUniformBuffer,
+                                          wgpu::Buffer posvelBuffer);
 
     void CreateTextures(const glm::vec2& textureSize);
 

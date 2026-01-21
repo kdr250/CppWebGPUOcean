@@ -39,6 +39,7 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     InitializeFluidBindGroups(renderUniformBuffer);
     InitializeDepthMapBindGroups(renderUniformBuffer, posvelBuffer);
     InitializeDepthFilterBindGroups(renderUniformBuffer);
+    InitializeThicknessMapBindGroups(renderUniformBuffer, posvelBuffer);
 }
 
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
@@ -537,7 +538,7 @@ void FluidRenderer::InitializeThicknessMapPipeline()
     // Create the pipeline layout
     wgpu::PipelineLayoutDescriptor layoutDesc {};
     layoutDesc.bindGroupLayoutCount = 1;
-    layoutDesc.bindGroupLayouts     = &mDepthMapBindGroupLayout;
+    layoutDesc.bindGroupLayouts     = &mThicknessMapBindGroupLayout;
     mThicknessMapLayout             = mDevice.CreatePipelineLayout(&layoutDesc);
 
     // pipelines
@@ -601,6 +602,30 @@ void FluidRenderer::InitializeThicknessMapPipeline()
     renderPipelineDesc.fragment = &fragmentState;
 
     mThicknessMapPipeline = mDevice.CreateRenderPipeline(&renderPipelineDesc);
+}
+
+void FluidRenderer::InitializeThicknessMapBindGroups(wgpu::Buffer renderUniformBuffer,
+                                                     wgpu::Buffer posvelBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(2);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = renderUniformBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = sizeof(RenderUniforms);
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = posvelBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = posvelBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("fluid bind group"),
+        .layout     = mThicknessMapBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mThicknessMapBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
 
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
