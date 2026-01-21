@@ -30,6 +30,7 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
     InitializeFluidPipelines(presentationFormat);
     InitializeDepthMapPipeline();
     InitializeDepthFilterPipeline();
+    InitializeThicknessMapPipeline();
 
     // textures
     CreateTextures(screenSize);
@@ -502,6 +503,104 @@ void FluidRenderer::DrawDepthFilter(wgpu::CommandEncoder& commandEncoder)
         depthFilterPassEncoderY.Draw(6, 1, 0, 0);
         depthFilterPassEncoderY.End();
     }
+}
+
+void FluidRenderer::InitializeThicknessMapPipeline()
+{
+    // shader module
+    wgpu::ShaderModule thicknessMapModule =
+        ResourceManager::LoadShaderModule("resources/shader/render/thicknessMap.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(2);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout);
+    bindingLayout.binding               = 0;
+    bindingLayout.visibility            = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
+    bindingLayout.buffer.type           = wgpu::BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(RenderUniforms);
+    // The positions binding
+    wgpu::BindGroupLayoutEntry& posvelBindingLayout = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(posvelBindingLayout);
+    posvelBindingLayout.binding               = 1;
+    posvelBindingLayout.visibility            = wgpu::ShaderStage::Vertex;
+    posvelBindingLayout.buffer.type           = wgpu::BufferBindingType::ReadOnlyStorage;
+    posvelBindingLayout.buffer.minBindingSize = sizeof(PosVel) * NUM_PARTICLES_MAX;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mThicknessMapBindGroupLayout   = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mDepthMapBindGroupLayout;
+    mThicknessMapLayout             = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::RenderPipelineDescriptor renderPipelineDesc {
+        .label  = WebGPUUtils::GenerateString("thickness map rendering pipeline"),
+        .layout = mThicknessMapLayout,
+        .vertex =
+            {
+                .bufferCount   = 0,
+                .buffers       = nullptr,
+                .module        = thicknessMapModule,
+                .entryPoint    = "vs",
+                .constantCount = 0,
+                .constants     = nullptr,
+            },
+        .primitive =
+            {
+                .topology         = wgpu::PrimitiveTopology::TriangleList,
+                .stripIndexFormat = wgpu::IndexFormat::Undefined,  // When Undefined, sequentially
+                .frontFace        = wgpu::FrontFace::CCW,
+                .cullMode         = wgpu::CullMode::None,
+            },
+        .multisample =
+            {
+                .count                  = 1,
+                .mask                   = ~0u,
+                .alphaToCoverageEnabled = false,
+            },
+    };
+
+    wgpu::BlendState blendState {
+        .color =
+            {
+                .srcFactor = wgpu::BlendFactor::One,
+                .dstFactor = wgpu::BlendFactor::One,
+                .operation = wgpu::BlendOperation::Add,
+            },
+        .alpha =
+            {
+                .srcFactor = wgpu::BlendFactor::One,
+                .dstFactor = wgpu::BlendFactor::One,
+                .operation = wgpu::BlendOperation::Add,
+            },
+    };
+
+    wgpu::ColorTargetState colorTarget {
+        .format    = wgpu::TextureFormat::R16Float,
+        .writeMask = wgpu::ColorWriteMask::Red,
+        .blend     = &blendState,
+    };
+
+    wgpu::FragmentState fragmentState {
+        .module        = thicknessMapModule,
+        .entryPoint    = "fs",
+        .constantCount = 0,
+        .constants     = nullptr,
+        .targetCount   = 1,
+        .targets       = &colorTarget,
+    };
+
+    renderPipelineDesc.fragment = &fragmentState;
+
+    mThicknessMapPipeline = mDevice.CreateRenderPipeline(&renderPipelineDesc);
 }
 
 void FluidRenderer::CreateTextures(const glm::vec2& textureSize)

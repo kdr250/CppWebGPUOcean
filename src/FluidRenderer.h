@@ -47,6 +47,9 @@ private:
     void InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBuffer);
     void DrawDepthFilter(wgpu::CommandEncoder& commandEncoder);
 
+    // Thickness map
+    void InitializeThicknessMapPipeline();
+
     void CreateTextures(const glm::vec2& textureSize);
 
 private:
@@ -73,6 +76,12 @@ private:
     wgpu::Buffer mFilterYUniformBuffer;
     FilterUniform mFilterXUniform;
     FilterUniform mFilterYUniform;
+
+    // Thickness map
+    wgpu::PipelineLayout mThicknessMapLayout;
+    wgpu::BindGroupLayout mThicknessMapBindGroupLayout;
+    wgpu::BindGroup mThicknessMapBindGroup;
+    wgpu::RenderPipeline mThicknessMapPipeline;
 
     // Texture Views
     wgpu::TextureView mDepthMapTextureView;
