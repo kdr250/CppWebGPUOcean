@@ -10,12 +10,29 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
 {
     mDevice = device;
 
+    CreateBuffers();
+
+    // Pipelines
     InitializeGridClearPipeline();
+
+    // BindGroups
+    InitializeGridClearBindGroups();
 }
 
 void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
 {
     // TODO
+}
+
+void SPHSimulator::CreateBuffers()
+{
+    wgpu::BufferDescriptor bufferDesc {};
+    bufferDesc.label            = WebGPUUtils::GenerateString("cell particle count buffer");
+    bufferDesc.size             = 4 * (mGridCount + 1);
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
+    bufferDesc.mappedAtCreation = false;
+
+    mCellParticleCountBuffer = mDevice.CreateBuffer(&bufferDesc);
 }
 
 void SPHSimulator::InitializeGridClearPipeline()
@@ -56,4 +73,22 @@ void SPHSimulator::InitializeGridClearPipeline()
     };
 
     mGridClearPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
+}
+
+void SPHSimulator::InitializeGridClearBindGroups()
+{
+    std::vector<wgpu::BindGroupEntry> bindings(1);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = mCellParticleCountBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = mCellParticleCountBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("grid clear bind group"),
+        .layout     = mGridClearBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mGridClearBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }

@@ -17,7 +17,10 @@ public:
     void Compute(wgpu::CommandEncoder commandEncoder);
 
 private:
+    void CreateBuffers();
+
     void InitializeGridClearPipeline();
+    void InitializeGridClearBindGroups();
 
 private:
     wgpu::Device mDevice;
@@ -27,4 +30,9 @@ private:
     wgpu::PipelineLayout mGridClearLayout;
     wgpu::BindGroupLayout mGridClearBindGroupLayout;
     wgpu::BindGroup mGridClearBindGroup;
+
+    // Buffers
+    wgpu::Buffer mCellParticleCountBuffer;  // 累積和
+
+    int mGridCount;
 };
