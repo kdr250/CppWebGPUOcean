@@ -812,7 +812,7 @@ void FluidRenderer::InitializeSpherePipelines(wgpu::TextureFormat presentationFo
     posvelBindingLayout.binding               = 1;
     posvelBindingLayout.visibility            = wgpu::ShaderStage::Vertex;
     posvelBindingLayout.buffer.type           = wgpu::BufferBindingType::ReadOnlyStorage;
-    posvelBindingLayout.buffer.minBindingSize = sizeof(PosVel) * NUM_PARTICLES_MAX;
+    posvelBindingLayout.buffer.minBindingSize = sizeof(PosVel) * NUM_PARTICLES_MIN;
 
     // Create a bind group layout
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
@@ -1004,7 +1004,7 @@ void FluidRenderer::InitializeDepthMapPipeline()
     posvelBindingLayout.binding               = 1;
     posvelBindingLayout.visibility            = wgpu::ShaderStage::Vertex;
     posvelBindingLayout.buffer.type           = wgpu::BufferBindingType::ReadOnlyStorage;
-    posvelBindingLayout.buffer.minBindingSize = sizeof(PosVel) * NUM_PARTICLES_MAX;
+    posvelBindingLayout.buffer.minBindingSize = sizeof(PosVel) * NUM_PARTICLES_MIN;
 
     // Create a bind group layout
     wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
