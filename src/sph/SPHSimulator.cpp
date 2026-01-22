@@ -29,6 +29,7 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
     wgpu::ComputePassEncoder computePass = commandEncoder.BeginComputePass(&computePassDesc);
 
     ComputeGridClear(computePass);
+    ComputeGridBuild(computePass);
 
     computePass.End();
 }
@@ -235,4 +236,11 @@ void SPHSimulator::InitializeGridBuildBindGroups(wgpu::Buffer particleBuffer)
         .entries    = bindings.data(),
     };
     mGridBuildBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void SPHSimulator::ComputeGridBuild(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mGridBuildBindGroup, 0, nullptr);
+    computePass.SetPipeline(mGridBuildPipeline);
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
 }

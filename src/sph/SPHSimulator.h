@@ -52,6 +52,7 @@ private:
     // Grid Build
     void InitializeGridBuildPipeline();
     void InitializeGridBuildBindGroups(wgpu::Buffer particleBuffer);
+    void ComputeGridBuild(wgpu::ComputePassEncoder& computePass);
 
 private:
     wgpu::Device mDevice;
@@ -74,5 +75,6 @@ private:
     wgpu::Buffer mEnvironmentBuffer;
     wgpu::Buffer mSPHParamsBuffer;
 
-    int mGridCount = 100;  // FIXME
+    int mGridCount    = 100;  // FIXME
+    int mNumParticles = 100;  // FIXME
 };
