@@ -17,5 +17,14 @@ public:
     void Compute(wgpu::CommandEncoder commandEncoder);
 
 private:
+    void InitializeGridClearPipeline();
+
+private:
     wgpu::Device mDevice;
+
+    // Grid Clear
+    wgpu::ComputePipeline mGridClearPipeline;
+    wgpu::PipelineLayout mGridClearLayout;
+    wgpu::BindGroupLayout mGridClearBindGroupLayout;
+    wgpu::BindGroup mGridClearBindGroup;
 };
