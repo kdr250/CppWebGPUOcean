@@ -6,7 +6,7 @@
 #include "Application.h"
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
-#include "sph/SPH.h"
+#include "sph/SPHSimulator.h"
 
 FluidRenderer::FluidRenderer(wgpu::Device device,
                              const glm::vec2& screenSize,

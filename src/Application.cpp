@@ -11,7 +11,6 @@
 
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
-#include "sph/SPH.h"
 
 Application::Application() : mWindow(nullptr) {}
 
@@ -183,6 +182,9 @@ bool Application::Initialize()
                                                      mRenderUniformBuffer,
                                                      mPosvelBuffer);
 
+    mSPHSimulator =
+        std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
+
     return true;
 }
 
@@ -314,6 +316,7 @@ void Application::GenerateOutput()
     };
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
+    mSPHSimulator->Compute(commandEncoder);
     mFluidRenderer->Draw(commandEncoder, targetView, mPosvel.size(), true);
 
     // Finally encode and submit the render pass

@@ -7,6 +7,7 @@
 
 #include "FluidRenderer.h"
 #include "Camera.h"
+#include "sph/SPHSimulator.h"
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -86,4 +87,6 @@ private:
 
     RenderUniforms mRenderUniforms;
     std::vector<PosVel> mPosvel;
+
+    std::unique_ptr<SPHSimulator> mSPHSimulator;
 };
