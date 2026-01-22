@@ -882,7 +882,7 @@ void FluidRenderer::InitializeSphereBindGroups(wgpu::Buffer renderUniformBuffer,
     bindings[1].size    = posvelBuffer.GetSize();
 
     wgpu::BindGroupDescriptor bindGroupDesc {
-        .label      = WebGPUUtils::GenerateString("depth map bind group"),
+        .label      = WebGPUUtils::GenerateString("sphere bind group"),
         .layout     = mSphereBindGroupLayout,
         .entryCount = static_cast<uint32_t>(bindings.size()),
         .entries    = bindings.data(),
