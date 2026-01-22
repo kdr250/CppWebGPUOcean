@@ -36,6 +36,41 @@ bool Application::Initialize()
         return false;
     }
 
+    // Add window callbacks
+    glfwSetWindowUserPointer(mWindow, this);
+    glfwSetCursorPosCallback(
+        mWindow,
+        [](GLFWwindow* window, double xpos, double ypos)
+        {
+            auto that = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+            if (that != nullptr)
+                that->OnMouseMove(xpos, ypos);
+        });
+    glfwSetMouseButtonCallback(
+        mWindow,
+        [](GLFWwindow* window, int button, int action, int mods)
+        {
+            auto that = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+            if (that != nullptr)
+                that->OnMouseButton(button, action, mods);
+        });
+    glfwSetScrollCallback(mWindow,
+                          [](GLFWwindow* window, double xoffset, double yoffset)
+                          {
+                              auto that =
+                                  reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+                              if (that != nullptr)
+                                  that->OnScroll(xoffset, yoffset);
+                          });
+    glfwSetKeyCallback(mWindow,
+                       [](GLFWwindow* window, int key, int scancode, int action, int mods)
+                       {
+                           auto that =
+                               reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+                           if (that != nullptr)
+                               that->OnKeyAction(key, scancode, action, mods);
+                       });
+
     // create instance
     wgpu::Instance instance = wgpu::CreateInstance(nullptr);
 
@@ -342,6 +377,82 @@ wgpu::Limits Application::GetRequiredLimits(wgpu::Adapter adapter) const
     //     supportedLimits.minStorageBufferOffsetAlignment;
 
     // return requiredLimits;
+}
+
+void Application::OnMouseMove(double xpos, double ypos)
+{
+    if (!mCamera->isDragging)
+        return;
+
+    float deltaX = mCamera->prevX - xpos;
+    float deltaY = mCamera->prevY - ypos;
+    mCamera->currentXTheta += mCamera->sensitivity * deltaX;
+    mCamera->currentYTheta += mCamera->sensitivity * deltaY;
+    if (mCamera->currentYTheta > mCamera->maxYTheta)
+        mCamera->currentYTheta = mCamera->maxYTheta;
+    if (mCamera->currentYTheta < mCamera->minYTheta)
+        mCamera->currentYTheta = mCamera->minYTheta;
+    mCamera->prevX = xpos;
+    mCamera->prevY = ypos;
+    mCamera->RecalculateView(mRenderUniforms);
+}
+
+void Application::OnMouseButton(int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
+    {
+        switch (action)
+        {
+            case GLFW_PRESS:
+            {
+                mCamera->isDragging = true;
+                double xpos, ypos;
+                glfwGetCursorPos(mWindow, &xpos, &ypos);
+                mCamera->prevX = xpos;
+                mCamera->prevY = ypos;
+                break;
+            }
+
+            case GLFW_RELEASE:
+            {
+                mCamera->isDragging = false;
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
+}
+
+void Application::OnScroll(double xoffset, double yoffset)
+{
+    mCamera->currentDistance += ((yoffset > 0.0) ? 1.0 : -1.0) * mCamera->zoomRate;
+    if (mCamera->currentDistance < mCamera->minDistance)
+        mCamera->currentDistance = mCamera->minDistance;
+    if (mCamera->currentDistance > mCamera->maxDistance)
+        mCamera->currentDistance = mCamera->maxDistance;
+
+    mCamera->RecalculateView(mRenderUniforms);
+}
+
+void Application::OnKeyAction(int key, int scancode, int action, int mods)
+{
+    if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
+    {
+        glfwSetWindowShouldClose(mWindow, true);
+        return;
+    }
+
+    if ((action == GLFW_PRESS || action == GLFW_REPEAT) && (key == GLFW_KEY_W || key == GLFW_KEY_S))
+    {
+        mCamera->currentDistance += (key == GLFW_KEY_W ? 1.0f : -1.0f) * mCamera->zoomRate;
+        if (mCamera->currentDistance < mCamera->minDistance)
+            mCamera->currentDistance = mCamera->minDistance;
+        if (mCamera->currentDistance > mCamera->maxDistance)
+            mCamera->currentDistance = mCamera->maxDistance;
+        mCamera->RecalculateView(mRenderUniforms);
+    }
 }
 
 bool Application::ShouldClose()

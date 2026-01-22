@@ -62,6 +62,12 @@ private:
 
     wgpu::Limits GetRequiredLimits(wgpu::Adapter adapter) const;
 
+    // Mouse events
+    void OnMouseMove(double xpos, double ypos);
+    void OnMouseButton(int button, int action, int mods);
+    void OnScroll(double xoffset, double yoffset);
+    void OnKeyAction(int key, int scancode, int action, int mods);
+
     bool ShouldClose();
 
 private:
