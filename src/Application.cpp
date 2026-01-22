@@ -122,8 +122,9 @@ bool Application::Initialize()
     mRenderUniforms.texelSize  = glm::vec2(1.0f / windowSize.x, 1.0 / windowSize.y);
 
     // FIXME
-    float fov          = 45.0f * glm::pi<float>() / 180.0f;
-    float initDistance = 2.6f;
+    float fov = 45.0f * glm::pi<float>() / 180.0f;
+    std::cout << "fov = " << fov << std::endl;
+    float initDistance = 3.0f;
     glm::vec3 target(0.0f, -1.9f, 0.0f);
     float zoomRate = 0.05f;
     float radius   = 0.04f;
@@ -136,7 +137,7 @@ bool Application::Initialize()
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
-    InitializeParticles(glm::vec3(1.0f, 2.0f, 1.0f), 10000);
+    InitializeParticles(glm::vec3(1.0f, 2.0f, 1.0f), 20000);
     mQueue.WriteBuffer(mPosvelBuffer, 0, mPosvel.data(), sizeof(PosVel) * mPosvel.size());
 
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
@@ -231,7 +232,7 @@ void Application::InitializeParticles(const glm::vec3& initHalfBoxSize, uint32_t
         }
     }
 
-    for (int i = 0; i < 100; ++i)
+    for (int i = 19000; i < 20000; ++i)
     {
         auto pos = mPosvel[i].position;
         std::cout << "particle " << i << ": { " << pos.x << ", " << pos.y << ", " << pos.z << " }"

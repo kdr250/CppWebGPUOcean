@@ -44,10 +44,10 @@ void Camera::Reset(RenderUniforms& renderUniforms,
 void Camera::RecalculateView(RenderUniforms& renderUniforms)
 {
     auto mat = glm::mat4(1.0f);
-    mat *= glm::translate(mat, this->target);
-    mat *= glm::rotate(mat, this->currentXTheta, glm::vec3(1.0f, 0.0f, 0.0f));
-    mat *= glm::rotate(mat, this->currentYTheta, glm::vec3(0.0f, 1.0f, 0.0f));
-    mat *= glm::translate(mat, glm::vec3(0.0f, 0.0f, this->currentDistance));
+    mat *= glm::translate(glm::mat4(1.0f), this->target);
+    mat *= glm::rotate(glm::mat4(1.0f), this->currentXTheta, glm::vec3(0.0f, 1.0f, 0.0f));
+    mat *= glm::rotate(glm::mat4(1.0f), this->currentYTheta, glm::vec3(1.0f, 0.0f, 0.0f));
+    mat *= glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, this->currentDistance));
 
     glm::vec4 position       = mat * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec3 cameraPosition = glm::vec3(position.x, position.y, position.z);
