@@ -21,6 +21,7 @@ private:
 
     void InitializeGridClearPipeline();
     void InitializeGridClearBindGroups();
+    void ComputeGridClear(wgpu::ComputePassEncoder& computePass);
 
 private:
     wgpu::Device mDevice;
@@ -34,5 +35,5 @@ private:
     // Buffers
     wgpu::Buffer mCellParticleCountBuffer;  // 累積和
 
-    int mGridCount;
+    int mGridCount = 100;  // FIXME
 };

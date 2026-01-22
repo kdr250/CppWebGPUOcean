@@ -21,7 +21,14 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
 
 void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
 {
-    // TODO
+    wgpu::ComputePassDescriptor computePassDesc {
+        .timestampWrites = nullptr,
+    };
+    wgpu::ComputePassEncoder computePass = commandEncoder.BeginComputePass(&computePassDesc);
+
+    ComputeGridClear(computePass);
+
+    computePass.End();
 }
 
 void SPHSimulator::CreateBuffers()
@@ -91,4 +98,11 @@ void SPHSimulator::InitializeGridClearBindGroups()
         .entries    = bindings.data(),
     };
     mGridClearBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void SPHSimulator::ComputeGridClear(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mGridClearBindGroup, 0, nullptr);
+    computePass.SetPipeline(mGridClearPipeline);
+    computePass.DispatchWorkgroups(std::ceil((mGridCount + 1) / 64));
 }
