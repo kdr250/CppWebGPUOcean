@@ -51,6 +51,7 @@ private:
 
     // Grid Build
     void InitializeGridBuildPipeline();
+    void InitializeGridBuildBindGroups(wgpu::Buffer particleBuffer);
 
 private:
     wgpu::Device mDevice;
