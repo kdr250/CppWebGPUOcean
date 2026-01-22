@@ -26,7 +26,6 @@ public:
     Camera();
 
     void Reset(RenderUniforms& renderUniforms,
-               glm::vec2 windowSize,
                float initDistance,
                glm::vec3 target,
                float fov,

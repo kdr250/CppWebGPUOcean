@@ -11,7 +11,6 @@ Camera::Camera()
 }
 
 void Camera::Reset(RenderUniforms& renderUniforms,
-                   glm::vec2 windowSize,
                    float initDistance,
                    glm::vec3 target,
                    float fov,
@@ -32,6 +31,7 @@ void Camera::Reset(RenderUniforms& renderUniforms,
     this->fov             = fov;
     this->zoomRate        = zoomRate;
 
+    auto windowSize = renderUniforms.screenSize;
     float aspect    = windowSize.x / windowSize.y;
     auto projection = glm::perspective(this->fov, aspect, 0.1f, 1000.0f);
 

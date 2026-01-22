@@ -132,8 +132,7 @@ bool Application::Initialize()
     mRenderUniforms.sphereSize = diameter;
 
     mCamera = std::make_unique<Camera>();
-    mCamera
-        ->Reset(mRenderUniforms, mRenderUniforms.screenSize, initDistance, target, fov, zoomRate);
+    mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
