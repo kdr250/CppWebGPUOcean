@@ -261,8 +261,8 @@ void Application::InitializeParticles(const glm::vec3& initHalfBoxSize, uint32_t
                  z < 0 * initHalfBoxSize[2] && particleCount < numParticles;
                  z += DIST_FACTOR * kernelRadius)
             {
-                mPosvel[particleCount].position = glm::vec3(x, y, z);
-                mPosvel[particleCount].v        = glm::vec3(0.0f, 0.0f, 0.1f);
+                mPosvel[particleCount].position = glm::vec3(0.0, 0.0, 0.0);
+                mPosvel[particleCount].v        = glm::vec3(0.0f, 0.0f, 0.0f);
                 particleCount++;
             }
         }

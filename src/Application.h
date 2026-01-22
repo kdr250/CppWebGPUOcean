@@ -33,7 +33,7 @@ struct PosVel
 
     float _padding[2];
 
-    PosVel() = default;
+    PosVel() : position(glm::vec3(0.0f)), v(glm::vec3(0.0f)) {};
     PosVel(glm::vec3 pos, glm::vec3 vel) : position(pos), v(vel) {};
 };
 
