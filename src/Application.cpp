@@ -296,6 +296,8 @@ void Application::GenerateOutput()
 {
     glfwPollEvents();
 
+    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
+
     // Get the next target texture view
     wgpu::TextureView targetView = GetNextSurfaceTextureView();
     if (!targetView)
