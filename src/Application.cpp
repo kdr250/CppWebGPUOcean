@@ -262,11 +262,13 @@ void Application::InitializeParticles(const glm::vec3& initHalfBoxSize, uint32_t
                  z += DIST_FACTOR * kernelRadius)
             {
                 mPosvel[particleCount].position = glm::vec3(x, y, z);
+                mPosvel[particleCount].v        = glm::vec3(0.0f, 0.0f, 0.1f);
                 particleCount++;
             }
         }
     }
 
+    // FIXME
     for (int i = 19000; i < 20000; ++i)
     {
         auto pos = mPosvel[i].position;
@@ -312,7 +314,7 @@ void Application::GenerateOutput()
     };
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
-    mFluidRenderer->Draw(commandEncoder, targetView, mPosvel.size());
+    mFluidRenderer->Draw(commandEncoder, targetView, mPosvel.size(), true);
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {

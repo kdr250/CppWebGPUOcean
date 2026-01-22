@@ -26,7 +26,8 @@ public:
 
     void Draw(wgpu::CommandEncoder& commandEncoder,
               wgpu::TextureView targetView,
-              uint32_t numParticles);
+              uint32_t numParticles,
+              bool renderSphere);
 
 private:
     // Fluid

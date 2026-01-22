@@ -1,6 +1,7 @@
 #include "FluidRenderer.h"
 
 #include <glm/glm.hpp>
+#include <iostream>
 
 #include "Application.h"
 #include "WebGPUUtils.h"
@@ -51,15 +52,20 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
 
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
                          wgpu::TextureView targetView,
-                         uint32_t numParticles)
+                         uint32_t numParticles,
+                         bool renderSphere)
 {
-    // DrawDepthMap(commandEncoder, numParticles);
-    // DrawDepthFilter(commandEncoder);
-    // DrawThicknessMap(commandEncoder, numParticles);
-    // DrawThicknessFilter(commandEncoder);
-    // DrawFluid(commandEncoder, targetView);
+    if (renderSphere)
+    {
+        DrawSphere(commandEncoder, targetView, numParticles);
+        return;
+    }
 
-    DrawSphere(commandEncoder, targetView, numParticles);
+    DrawDepthMap(commandEncoder, numParticles);
+    DrawDepthFilter(commandEncoder);
+    DrawThicknessMap(commandEncoder, numParticles);
+    DrawThicknessFilter(commandEncoder);
+    DrawFluid(commandEncoder, targetView);
 }
 
 void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat,
@@ -237,6 +243,9 @@ void FluidRenderer::CreateDepthFilterUniform(float depthThreshold,
                                              float projectedParticleConstant,
                                              float maxFilterSize)
 {
+    std::cout << "depthThreshold = " << depthThreshold << std::endl;
+    std::cout << "projectedParticleConstant = " << projectedParticleConstant << std::endl;
+    std::cout << "maxFilterSize = " << maxFilterSize << std::endl;
     // create buffer
     wgpu::BufferDescriptor bufferDesc {};
     bufferDesc.label            = WebGPUUtils::GenerateString("filter X unioform buffer");
