@@ -126,6 +126,10 @@ bool Application::Initialize()
     float initDistance = 2.6f;
     glm::vec3 target(0.0f, -1.9f, 0.0f);
     float zoomRate = 0.05f;
+    float radius   = 0.04f;
+    float diameter = 2.0f * radius;
+
+    mRenderUniforms.sphereSize = diameter;
 
     mCamera = std::make_unique<Camera>();
     mCamera
@@ -136,7 +140,6 @@ bool Application::Initialize()
     InitializeParticles(glm::vec3(1.0f, 2.0f, 1.0f), 10000);
     mQueue.WriteBuffer(mPosvelBuffer, 0, mPosvel.data(), sizeof(PosVel) * mPosvel.size());
 
-    float radius   = 0.04;
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
                                                      mRenderUniforms.screenSize,
                                                      mSurfaceFormat,
