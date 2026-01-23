@@ -32,6 +32,17 @@ struct SPHParams
     uint32_t n;
 };
 
+struct SPHParticle
+{
+    glm::vec3 position;
+    glm::vec3 v;
+    glm::vec3 force;
+    float density;
+    float nearDensity;
+
+    float _padding;
+};
+
 class SPHSimulator
 {
 public:
@@ -79,6 +90,10 @@ private:
     void InitializeCopyPositionPipeline();
     void InitializeCopyPositionBindGroups(wgpu::Buffer particleBuffer, wgpu::Buffer posvelBuffer);
     void ComputeCopyPosition(wgpu::ComputePassEncoder& computePass);
+
+    std::vector<SPHParticle> InitializeDamBreak(const glm::vec3& initHalfBoxSize, int numParticles);
+
+    float Random();
 
 private:
     wgpu::Device mDevice;
@@ -135,6 +150,8 @@ private:
 
     std::unique_ptr<PrefixSumKernel> mPrefixSumkernel;
 
-    int mGridCount    = 100;  // FIXME
-    int mNumParticles = 100;  // FIXME
+    int mGridCount      = 100;  // FIXME
+    int mNumParticles   = 100;  // FIXME
+    float mKernelRadius = 0.07;
+    float mRenderDiameter;
 };

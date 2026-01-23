@@ -1,5 +1,7 @@
 #include "SPHSimulator.h"
 
+#include <random>
+
 #include "../WebGPUUtils.h"
 #include "../ResourceManager.h"
 
@@ -45,7 +47,7 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
     {
         ComputeGridClear(computePass);
         ComputeGridBuild(computePass);
-        // TODO: Radix Sort PrefixSumKerne cellParticleCountBuffer
+        mPrefixSumkernel->Dispatch(computePass);
         ComputeReorder(computePass);
         ComputeDensity(computePass);
         ComputeForce(computePass);
@@ -795,4 +797,46 @@ void SPHSimulator::ComputeCopyPosition(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mCopyPositionBindGroup, 0, nullptr);
     computePass.SetPipeline(mCopyPositionPipeline);
     computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
+}
+
+std::vector<SPHParticle> SPHSimulator::InitializeDamBreak(const glm::vec3& initHalfBoxSize,
+                                                          int numParticles)
+{
+    std::vector<SPHParticle> particles(numParticles);
+    mNumParticles           = 0;
+    const float DIST_FACTOR = 0.5;
+
+    for (float y = -initHalfBoxSize[1] * 0.95f; mNumParticles < numParticles;
+         y += DIST_FACTOR * mKernelRadius)
+    {
+        for (float x = -0.95f * initHalfBoxSize[0];
+             x < 0.95f * initHalfBoxSize[0] && mNumParticles < numParticles;
+             x += DIST_FACTOR * mKernelRadius)
+        {
+            for (float z = -0.95f * initHalfBoxSize[2]; z < 0.0f && mNumParticles < numParticles;
+                 z += DIST_FACTOR * mKernelRadius)
+            {
+                float jitter = 0.001f * Random();
+                SPHParticle particle {
+                    .position    = glm::vec3(x + jitter, y + jitter, z + jitter),
+                    .v           = glm::vec3(0.0f),
+                    .force       = glm::vec3(0.0f),
+                    .density     = 0.0f,
+                    .nearDensity = 0.0f,
+                };
+                particles.push_back(particle);
+                mNumParticles++;
+            }
+        }
+    }
+
+    return particles;
+}
+
+float SPHSimulator::Random()
+{
+    static std::random_device device;
+    static std::mt19937_64 generator(device());
+    static std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+    return distribution(generator);
 }
