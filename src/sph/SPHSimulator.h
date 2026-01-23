@@ -62,6 +62,7 @@ private:
     // Density
     void InitializeDensityPipeline();
     void InitializeDensityBindGroups(wgpu::Buffer particleBuffer);
+    void ComputeDensity(wgpu::ComputePassEncoder& computePass);
 
 private:
     wgpu::Device mDevice;

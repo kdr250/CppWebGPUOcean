@@ -36,6 +36,7 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
     ComputeGridBuild(computePass);
     // TODO: Radix Sort PrefixSumKerne cellParticleCountBuffer
     ComputeReorder(computePass);
+    ComputeDensity(computePass);
 
     computePass.End();
 }
@@ -480,4 +481,11 @@ void SPHSimulator::InitializeDensityBindGroups(wgpu::Buffer particleBuffer)
         .entries    = bindings.data(),
     };
     mDensityBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void SPHSimulator::ComputeDensity(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mDensityBindGroup, 0, nullptr);
+    computePass.SetPipeline(mDensityPipeline);
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
 }
