@@ -74,6 +74,9 @@ private:
     void InitializeIntegrateBindGroups(wgpu::Buffer particleBuffer);
     void ComputeIntegrate(wgpu::ComputePassEncoder& computePass);
 
+    // Copy position
+    void InitializeCopyPositionPipeline();
+
 private:
     wgpu::Device mDevice;
 
@@ -112,6 +115,12 @@ private:
     wgpu::PipelineLayout mIntegrateLayout;
     wgpu::BindGroupLayout mIntegrateBindGroupLayout;
     wgpu::BindGroup mIntegrateBindGroup;
+
+    // Copy position
+    wgpu::ComputePipeline mCopyPositionPipeline;
+    wgpu::PipelineLayout mCopyPositionLayout;
+    wgpu::BindGroupLayout mCopyPositionBindGroupLayout;
+    wgpu::BindGroup mCopyPositionBindGroup;
 
     // Buffers
     wgpu::Buffer mCellParticleCountBuffer;  // 累積和

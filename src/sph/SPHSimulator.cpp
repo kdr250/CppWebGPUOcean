@@ -19,6 +19,7 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     InitializeDensityPipeline();
     InitializeForcePipeline();
     InitializeIntegratePipeline();
+    InitializeCopyPositionPipeline();
 
     // BindGroups
     InitializeGridClearBindGroups();
@@ -698,4 +699,56 @@ void SPHSimulator::ComputeIntegrate(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mIntegrateBindGroup, 0, nullptr);
     computePass.SetPipeline(mIntegratePipeline);
     computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
+}
+
+void SPHSimulator::InitializeCopyPositionPipeline()
+{
+    wgpu::ShaderModule copyPositionModule =
+        ResourceManager::LoadShaderModule("resources/shader/sph/copyPosition.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(3);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout0 = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout0);
+    bindingLayout0.binding     = 0;
+    bindingLayout0.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout0.buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout1 = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout1);
+    bindingLayout1.binding     = 1;
+    bindingLayout1.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout1.buffer.type = wgpu::BufferBindingType::Storage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout2 = bindingLayoutEentries[2];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout2);
+    bindingLayout2.binding     = 2;
+    bindingLayout2.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout2.buffer.type = wgpu::BufferBindingType::Uniform;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mCopyPositionBindGroupLayout   = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mCopyPositionBindGroupLayout;
+    mCopyPositionLayout             = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::ComputePipelineDescriptor computePipelineDesc {
+        .label  = WebGPUUtils::GenerateString("copy position pipeline"),
+        .layout = mCopyPositionLayout,
+        .compute =
+            {
+                .module     = copyPositionModule,
+                .entryPoint = "copyPosition",
+            },
+    };
+
+    mCopyPositionPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
 }
