@@ -64,7 +64,7 @@ public:
 
 private:
     void CreateBuffers();
-    void WriteBuffers(float renderDiameter);
+    void WriteBuffers(const Environment& environment, const SPHParams& sphParams);
 
     // Grid Clear
     void InitializeGridClearPipeline();
@@ -104,6 +104,8 @@ private:
     std::vector<SPHParticle> InitializeDamBreak(const glm::vec3& initHalfBoxSize, int numParticles);
 
     float Random();
+
+    void CalculateGridCount();
 
 private:
     wgpu::Device mDevice;

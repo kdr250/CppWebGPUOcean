@@ -14,9 +14,50 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
 {
     mDevice = device;
 
+    mRenderDiameter = renderDiameter;
+
+    float cellSize = 1.0f * mKernelRadius;
+    glm::vec3 halfMax(2.0f, 2.0f, 2.0f);
+    glm::vec3 length = halfMax * 2.0f;
+    float sentinel   = 4.0f * cellSize;
+    glm::vec3 grids(0.0f);
+    grids.x      = std::ceil((length.x + sentinel) / cellSize);
+    grids.y      = std::ceil((length.y + sentinel) / cellSize);
+    grids.z      = std::ceil((length.z + sentinel) / cellSize);
+    mGridCount   = (int)(grids.x * grids.y * grids.z);
+    float offset = sentinel / 2.0f;
+
+    float stiffness     = 20.0f;
+    float nearStiffness = 1.0f;
+    float mass          = 1.0f;
+    float restDensity   = 15000.0f;
+    float viscosity     = 100.0f;
+    float dt            = 0.006f;
+
+    Environment environment {
+        .grids    = grids,
+        .cellSize = cellSize,
+        .half     = halfMax,
+        .offset   = offset,
+    };
+
+    SPHParams sphParams {
+        .mass             = mass,
+        .kernelRadius     = mKernelRadius,
+        .kernelRadiusPow2 = std::pow(mKernelRadius, 2.0f),
+        .kernelRadiusPow5 = std::pow(mKernelRadius, 5.0f),
+        .kernelRadiusPow6 = std::pow(mKernelRadius, 6.0f),
+        .kernelRadiusPow9 = std::pow(mKernelRadius, 9.0f),
+        .dt               = dt,
+        .stiffness        = stiffness,
+        .nearStiffness    = nearStiffness,
+        .restDensity      = restDensity,
+        .viscosity        = viscosity,
+    };
+
     // Buffers
     CreateBuffers();
-    WriteBuffers(renderDiameter);
+    WriteBuffers(environment, sphParams);
 
     // Pipelines
     InitializeGridClearPipeline();
@@ -134,49 +175,8 @@ void SPHSimulator::CreateBuffers()
     mRealBoxSizeBuffer = mDevice.CreateBuffer(&bufferDesc);
 }
 
-void SPHSimulator::WriteBuffers(float renderDiameter)
+void SPHSimulator::WriteBuffers(const Environment& environment, const SPHParams& sphParams)
 {
-    mRenderDiameter = renderDiameter;
-
-    float cellSize = 1.0f * mKernelRadius;
-    glm::vec3 halfMax(2.0f, 2.0f, 2.0f);
-    glm::vec3 length = halfMax * 2.0f;
-    float sentinel   = 4.0f * cellSize;
-    glm::vec3 grids(0.0f);
-    grids.x      = std::ceil((length.x + sentinel) / cellSize);
-    grids.y      = std::ceil((length.y + sentinel) / cellSize);
-    grids.z      = std::ceil((length.z + sentinel) / cellSize);
-    mGridCount   = (int)(grids.x * grids.y * grids.z);
-    float offset = sentinel / 2.0f;
-
-    float stiffness     = 20.0f;
-    float nearStiffness = 1.0f;
-    float mass          = 1.0f;
-    float restDensity   = 15000.0f;
-    float viscosity     = 100.0f;
-    float dt            = 0.006f;
-
-    Environment environment {
-        .grids    = grids,
-        .cellSize = cellSize,
-        .half     = halfMax,
-        .offset   = offset,
-    };
-
-    SPHParams sphParams {
-        .mass             = mass,
-        .kernelRadius     = mKernelRadius,
-        .kernelRadiusPow2 = std::pow(mKernelRadius, 2.0f),
-        .kernelRadiusPow5 = std::pow(mKernelRadius, 5.0f),
-        .kernelRadiusPow6 = std::pow(mKernelRadius, 6.0f),
-        .kernelRadiusPow9 = std::pow(mKernelRadius, 9.0f),
-        .dt               = dt,
-        .stiffness        = stiffness,
-        .nearStiffness    = nearStiffness,
-        .restDensity      = restDensity,
-        .viscosity        = viscosity,
-    };
-
     auto queue = mDevice.GetQueue();
     queue.WriteBuffer(mEnvironmentBuffer, 0, &environment, sizeof(Environment));
     queue.WriteBuffer(mSPHParamsBuffer, 0, &sphParams, sizeof(SPHParams));
