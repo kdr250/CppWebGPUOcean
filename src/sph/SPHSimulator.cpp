@@ -42,6 +42,7 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
     ComputeReorder(computePass);
     ComputeDensity(computePass);
     ComputeForce(computePass);
+    ComputeIntegrate(computePass);
 
     computePass.End();
 }
@@ -690,4 +691,11 @@ void SPHSimulator::InitializeIntegrateBindGroups(wgpu::Buffer particleBuffer)
         .entries    = bindings.data(),
     };
     mIntegrateBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void SPHSimulator::ComputeIntegrate(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mIntegrateBindGroup, 0, nullptr);
+    computePass.SetPipeline(mIntegratePipeline);
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
 }

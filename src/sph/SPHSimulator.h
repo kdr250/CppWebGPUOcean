@@ -72,6 +72,7 @@ private:
     // Integrate
     void InitializeIntegratePipeline();
     void InitializeIntegrateBindGroups(wgpu::Buffer particleBuffer);
+    void ComputeIntegrate(wgpu::ComputePassEncoder& computePass);
 
 private:
     wgpu::Device mDevice;
