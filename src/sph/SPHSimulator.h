@@ -56,6 +56,7 @@ private:
 
     // Reorder
     void InitializeReorderPipeline();
+    void InitializeReorderBindGroups(wgpu::Buffer particleBuffer);
 
 private:
     wgpu::Device mDevice;
@@ -83,6 +84,7 @@ private:
     wgpu::Buffer mParticleCellOffsetBuffer;
     wgpu::Buffer mEnvironmentBuffer;
     wgpu::Buffer mSPHParamsBuffer;
+    wgpu::Buffer mTargetParticlesBuffer;
 
     int mGridCount    = 100;  // FIXME
     int mNumParticles = 100;  // FIXME

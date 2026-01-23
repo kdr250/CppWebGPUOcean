@@ -70,6 +70,14 @@ void SPHSimulator::CreateBuffers()
     bufferDesc.mappedAtCreation = false;
 
     mSPHParamsBuffer = mDevice.CreateBuffer(&bufferDesc);
+
+    // target particles
+    bufferDesc.label            = WebGPUUtils::GenerateString("target particles buffer");
+    bufferDesc.size             = SPH_PARTICLE_STRUCTURE_SIZE * NUM_PARTICLES_MAX;
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
+    bufferDesc.mappedAtCreation = false;
+
+    mTargetParticlesBuffer = mDevice.CreateBuffer(&bufferDesc);
 }
 
 void SPHSimulator::InitializeGridClearPipeline()
@@ -315,4 +323,47 @@ void SPHSimulator::InitializeReorderPipeline()
     };
 
     mReorderPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
+}
+
+void SPHSimulator::InitializeReorderBindGroups(wgpu::Buffer particleBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(6);
+
+    bindings[0].binding = 1;
+    bindings[0].buffer  = particleBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = particleBuffer.GetSize();
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mTargetParticlesBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = mTargetParticlesBuffer.GetSize();
+
+    bindings[2].binding = 2;
+    bindings[2].buffer  = mCellParticleCountBuffer;
+    bindings[2].offset  = 0;
+    bindings[2].size    = mCellParticleCountBuffer.GetSize();
+
+    bindings[3].binding = 3;
+    bindings[3].buffer  = mParticleCellOffsetBuffer;
+    bindings[3].offset  = 0;
+    bindings[3].size    = mParticleCellOffsetBuffer.GetSize();
+
+    bindings[4].binding = 4;
+    bindings[4].buffer  = mEnvironmentBuffer;
+    bindings[4].offset  = 4;
+    bindings[4].size    = mEnvironmentBuffer.GetSize();
+
+    bindings[5].binding = 5;
+    bindings[5].buffer  = mSPHParamsBuffer;
+    bindings[5].offset  = 0;
+    bindings[5].size    = mSPHParamsBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("grid build bind group"),
+        .layout     = mGridBuildBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mGridBuildBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
