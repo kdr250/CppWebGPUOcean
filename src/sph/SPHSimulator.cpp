@@ -18,6 +18,7 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     InitializeReorderPipeline();
     InitializeDensityPipeline();
     InitializeForcePipeline();
+    InitializeIntegratePipeline();
 
     // BindGroups
     InitializeGridClearBindGroups();
@@ -600,4 +601,56 @@ void SPHSimulator::ComputeForce(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mForceBindGroup, 0, nullptr);
     computePass.SetPipeline(mForcePipeline);
     computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
+}
+
+void SPHSimulator::InitializeIntegratePipeline()
+{
+    wgpu::ShaderModule integrateModule =
+        ResourceManager::LoadShaderModule("resources/shader/sph/integrate.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(3);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout0 = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout0);
+    bindingLayout0.binding     = 0;
+    bindingLayout0.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout0.buffer.type = wgpu::BufferBindingType::Storage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout1 = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout1);
+    bindingLayout1.binding     = 1;
+    bindingLayout1.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout1.buffer.type = wgpu::BufferBindingType::Uniform;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout2 = bindingLayoutEentries[2];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout2);
+    bindingLayout2.binding     = 2;
+    bindingLayout2.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout2.buffer.type = wgpu::BufferBindingType::Uniform;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mIntegrateBindGroupLayout      = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mIntegrateBindGroupLayout;
+    mIntegrateLayout                = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::ComputePipelineDescriptor computePipelineDesc {
+        .label  = WebGPUUtils::GenerateString("integrate pipeline"),
+        .layout = mIntegrateLayout,
+        .compute =
+            {
+                .module     = integrateModule,
+                .entryPoint = "integrate",
+            },
+    };
+
+    mIntegratePipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
 }

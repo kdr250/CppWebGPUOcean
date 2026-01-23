@@ -69,6 +69,9 @@ private:
     void InitializeForceBindGroups(wgpu::Buffer particleBuffer);
     void ComputeForce(wgpu::ComputePassEncoder& computePass);
 
+    // Integrate
+    void InitializeIntegratePipeline();
+
 private:
     wgpu::Device mDevice;
 
@@ -101,6 +104,12 @@ private:
     wgpu::PipelineLayout mForceLayout;
     wgpu::BindGroupLayout mForceBindGroupLayout;
     wgpu::BindGroup mForceBindGroup;
+
+    // Integrate
+    wgpu::ComputePipeline mIntegratePipeline;
+    wgpu::PipelineLayout mIntegrateLayout;
+    wgpu::BindGroupLayout mIntegrateBindGroupLayout;
+    wgpu::BindGroup mIntegrateBindGroup;
 
     // Buffers
     wgpu::Buffer mCellParticleCountBuffer;  // 累積和
