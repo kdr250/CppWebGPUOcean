@@ -66,6 +66,7 @@ private:
 
     // Force
     void InitializeForcePipeline();
+    void InitializeForceBindGroups(wgpu::Buffer particleBuffer);
 
 private:
     wgpu::Device mDevice;

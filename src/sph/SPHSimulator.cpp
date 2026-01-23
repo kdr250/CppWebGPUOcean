@@ -24,6 +24,7 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     InitializeGridBuildBindGroups(particleBuffer);
     InitializeReorderBindGroups(particleBuffer);
     InitializeDensityBindGroups(particleBuffer);
+    InitializeForceBindGroups(particleBuffer);
 }
 
 void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
@@ -553,4 +554,42 @@ void SPHSimulator::InitializeForcePipeline()
     };
 
     mForcePipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
+}
+
+void SPHSimulator::InitializeForceBindGroups(wgpu::Buffer particleBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(5);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = particleBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = particleBuffer.GetSize();
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mTargetParticlesBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = mTargetParticlesBuffer.GetSize();
+
+    bindings[2].binding = 2;
+    bindings[2].buffer  = mCellParticleCountBuffer;
+    bindings[2].offset  = 0;
+    bindings[2].size    = mCellParticleCountBuffer.GetSize();
+
+    bindings[3].binding = 3;
+    bindings[3].buffer  = mEnvironmentBuffer;
+    bindings[3].offset  = 0;
+    bindings[3].size    = mEnvironmentBuffer.GetSize();
+
+    bindings[4].binding = 4;
+    bindings[4].buffer  = mSPHParamsBuffer;
+    bindings[4].offset  = 0;
+    bindings[4].size    = mSPHParamsBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("density bind group"),
+        .layout     = mForceBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mForceBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
