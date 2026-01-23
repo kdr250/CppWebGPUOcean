@@ -38,13 +38,17 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
     };
     wgpu::ComputePassEncoder computePass = commandEncoder.BeginComputePass(&computePassDesc);
 
-    ComputeGridClear(computePass);
-    ComputeGridBuild(computePass);
-    // TODO: Radix Sort PrefixSumKerne cellParticleCountBuffer
-    ComputeReorder(computePass);
-    ComputeDensity(computePass);
-    ComputeForce(computePass);
-    ComputeIntegrate(computePass);
+    for (int i = 0; i < 2; ++i)
+    {
+        ComputeGridClear(computePass);
+        ComputeGridBuild(computePass);
+        // TODO: Radix Sort PrefixSumKerne cellParticleCountBuffer
+        ComputeReorder(computePass);
+        ComputeDensity(computePass);
+        ComputeForce(computePass);
+        ComputeIntegrate(computePass);
+        ComputeCopyPosition(computePass);
+    }
 
     computePass.End();
 }
@@ -781,4 +785,11 @@ void SPHSimulator::InitializeCopyPositionBindGroups(wgpu::Buffer particleBuffer,
         .entries    = bindings.data(),
     };
     mCopyPositionBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void SPHSimulator::ComputeCopyPosition(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mCopyPositionBindGroup, 0, nullptr);
+    computePass.SetPipeline(mCopyPositionPipeline);
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
 }
