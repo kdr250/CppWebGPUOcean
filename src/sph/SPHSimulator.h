@@ -54,6 +54,9 @@ private:
     void InitializeGridBuildBindGroups(wgpu::Buffer particleBuffer);
     void ComputeGridBuild(wgpu::ComputePassEncoder& computePass);
 
+    // Reorder
+    void InitializeReorderPipeline();
+
 private:
     wgpu::Device mDevice;
 
@@ -68,6 +71,12 @@ private:
     wgpu::PipelineLayout mGridBuildLayout;
     wgpu::BindGroupLayout mGridBuildBindGroupLayout;
     wgpu::BindGroup mGridBuildBindGroup;
+
+    // Reorder
+    wgpu::ComputePipeline mReorderPipeline;
+    wgpu::PipelineLayout mReorderLayout;
+    wgpu::BindGroupLayout mReorderBindGroupLayout;
+    wgpu::BindGroup mReorderBindGroup;
 
     // Buffers
     wgpu::Buffer mCellParticleCountBuffer;  // 累積和
