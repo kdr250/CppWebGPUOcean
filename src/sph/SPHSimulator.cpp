@@ -97,6 +97,7 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
         mPrefixSumkernel->Dispatch(computePass);
         ComputeReorder(computePass);
         ComputeDensity(computePass);
+        ComputeReorder(computePass);
         ComputeForce(computePass);
         ComputeIntegrate(computePass);
         ComputeCopyPosition(computePass);
