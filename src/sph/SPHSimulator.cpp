@@ -28,6 +28,7 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     InitializeDensityBindGroups(particleBuffer);
     InitializeForceBindGroups(particleBuffer);
     InitializeIntegrateBindGroups(particleBuffer);
+    InitializeCopyPositionBindGroups(particleBuffer, posvelBuffer);
 }
 
 void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
@@ -751,4 +752,33 @@ void SPHSimulator::InitializeCopyPositionPipeline()
     };
 
     mCopyPositionPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
+}
+
+void SPHSimulator::InitializeCopyPositionBindGroups(wgpu::Buffer particleBuffer,
+                                                    wgpu::Buffer posvelBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(3);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = particleBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = particleBuffer.GetSize();
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = posvelBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = posvelBuffer.GetSize();
+
+    bindings[2].binding = 2;
+    bindings[2].buffer  = mSPHParamsBuffer;
+    bindings[2].offset  = 0;
+    bindings[2].size    = mSPHParamsBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("copy position bind group"),
+        .layout     = mCopyPositionBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mCopyPositionBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }

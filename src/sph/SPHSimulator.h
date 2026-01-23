@@ -76,6 +76,7 @@ private:
 
     // Copy position
     void InitializeCopyPositionPipeline();
+    void InitializeCopyPositionBindGroups(wgpu::Buffer particleBuffer, wgpu::Buffer posvelBuffer);
 
 private:
     wgpu::Device mDevice;
