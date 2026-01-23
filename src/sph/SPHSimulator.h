@@ -59,6 +59,10 @@ private:
     void InitializeReorderBindGroups(wgpu::Buffer particleBuffer);
     void ComputeReorder(wgpu::ComputePassEncoder& computePass);
 
+    // Density
+    void InitializeDensityPipeline();
+    void InitializeDensityBindGroups(wgpu::Buffer particleBuffer);
+
 private:
     wgpu::Device mDevice;
 
@@ -79,6 +83,12 @@ private:
     wgpu::PipelineLayout mReorderLayout;
     wgpu::BindGroupLayout mReorderBindGroupLayout;
     wgpu::BindGroup mReorderBindGroup;
+
+    // Density
+    wgpu::ComputePipeline mDensityPipeline;
+    wgpu::PipelineLayout mDensityLayout;
+    wgpu::BindGroupLayout mDensityBindGroupLayout;
+    wgpu::BindGroup mDensityBindGroup;
 
     // Buffers
     wgpu::Buffer mCellParticleCountBuffer;  // 累積和

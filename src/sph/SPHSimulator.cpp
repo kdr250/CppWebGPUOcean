@@ -16,11 +16,13 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     InitializeGridClearPipeline();
     InitializeGridBuildPipeline();
     InitializeReorderPipeline();
+    InitializeDensityPipeline();
 
     // BindGroups
     InitializeGridClearBindGroups();
     InitializeGridBuildBindGroups(particleBuffer);
     InitializeReorderBindGroups(particleBuffer);
+    InitializeDensityBindGroups(particleBuffer);
 }
 
 void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
@@ -376,4 +378,106 @@ void SPHSimulator::ComputeReorder(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mReorderBindGroup, 0, nullptr);
     computePass.SetPipeline(mReorderPipeline);
     computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
+}
+
+void SPHSimulator::InitializeDensityPipeline()
+{
+    wgpu::ShaderModule densityModule =
+        ResourceManager::LoadShaderModule("resources/shader/sph/density.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(5);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout0 = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout0);
+    bindingLayout0.binding     = 0;
+    bindingLayout0.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout0.buffer.type = wgpu::BufferBindingType::Storage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout1 = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout1);
+    bindingLayout1.binding     = 1;
+    bindingLayout1.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout1.buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout2 = bindingLayoutEentries[2];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout2);
+    bindingLayout2.binding     = 2;
+    bindingLayout2.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout2.buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout3 = bindingLayoutEentries[3];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout3);
+    bindingLayout3.binding     = 3;
+    bindingLayout3.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout3.buffer.type = wgpu::BufferBindingType::Uniform;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout4 = bindingLayoutEentries[4];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout4);
+    bindingLayout4.binding     = 4;
+    bindingLayout4.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout4.buffer.type = wgpu::BufferBindingType::Uniform;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mDensityBindGroupLayout        = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mDensityBindGroupLayout;
+    mDensityLayout                  = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::ComputePipelineDescriptor computePipelineDesc {
+        .label  = WebGPUUtils::GenerateString("density pipeline"),
+        .layout = mDensityLayout,
+        .compute =
+            {
+                .module     = densityModule,
+                .entryPoint = "computeDensity",
+            },
+    };
+
+    mDensityPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
+}
+
+void SPHSimulator::InitializeDensityBindGroups(wgpu::Buffer particleBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(5);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = particleBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = particleBuffer.GetSize();
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mTargetParticlesBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = mTargetParticlesBuffer.GetSize();
+
+    bindings[2].binding = 2;
+    bindings[2].buffer  = mCellParticleCountBuffer;
+    bindings[2].offset  = 0;
+    bindings[2].size    = mCellParticleCountBuffer.GetSize();
+
+    bindings[3].binding = 3;
+    bindings[3].buffer  = mEnvironmentBuffer;
+    bindings[3].offset  = 0;
+    bindings[3].size    = mEnvironmentBuffer.GetSize();
+
+    bindings[4].binding = 4;
+    bindings[4].buffer  = mSPHParamsBuffer;
+    bindings[4].offset  = 0;
+    bindings[4].size    = mSPHParamsBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("density bind group"),
+        .layout     = mDensityBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mDensityBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
