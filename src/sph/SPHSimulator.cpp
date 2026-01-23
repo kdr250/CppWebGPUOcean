@@ -1,9 +1,11 @@
 #include "SPHSimulator.h"
 
+#include <glm/gtc/type_ptr.hpp>
 #include <random>
 
 #include "../WebGPUUtils.h"
 #include "../ResourceManager.h"
+#include "../Application.h"
 
 SPHSimulator::SPHSimulator(wgpu::Device device,
                            wgpu::Buffer particleBuffer,
@@ -12,7 +14,9 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
 {
     mDevice = device;
 
+    // Buffers
     CreateBuffers();
+    WriteBuffers(renderDiameter);
 
     // Pipelines
     InitializeGridClearPipeline();
@@ -34,6 +38,8 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
 
     mPrefixSumkernel =
         std::make_unique<PrefixSumKernel>(mDevice, mCellParticleCountBuffer, mGridCount + 1);
+
+    mParticleBuffer = particleBuffer;
 }
 
 void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
@@ -109,6 +115,54 @@ void SPHSimulator::CreateBuffers()
     bufferDesc.mappedAtCreation = false;
 
     mRealBoxSizeBuffer = mDevice.CreateBuffer(&bufferDesc);
+}
+
+void SPHSimulator::WriteBuffers(float renderDiameter)
+{
+    mRenderDiameter = renderDiameter;
+
+    float cellSize = 1.0f * mKernelRadius;
+    glm::vec3 halfMax(2.0f, 2.0f, 2.0f);
+    glm::vec3 length = halfMax * 2.0f;
+    float sentinel   = 4.0f * cellSize;
+    glm::vec3 grids(0.0f);
+    grids.x      = std::ceil((length.x + sentinel) / cellSize);
+    grids.y      = std::ceil((length.y + sentinel) / cellSize);
+    grids.z      = std::ceil((length.z + sentinel) / cellSize);
+    mGridCount   = (int)(grids.x * grids.y * grids.z);
+    float offset = sentinel / 2.0f;
+
+    float stiffness     = 20.0f;
+    float nearStiffness = 1.0f;
+    float mass          = 1.0f;
+    float restDensity   = 15000.0f;
+    float viscosity     = 100.0f;
+    float dt            = 0.006f;
+
+    Environment environment {
+        .grids    = grids,
+        .cellSize = cellSize,
+        .half     = halfMax,
+        .offset   = offset,
+    };
+
+    SPHParams sphParams {
+        .mass             = mass,
+        .kernelRadius     = mKernelRadius,
+        .kernelRadiusPow2 = std::pow(mKernelRadius, 2.0f),
+        .kernelRadiusPow5 = std::pow(mKernelRadius, 5.0f),
+        .kernelRadiusPow6 = std::pow(mKernelRadius, 6.0f),
+        .kernelRadiusPow9 = std::pow(mKernelRadius, 9.0f),
+        .dt               = dt,
+        .stiffness        = stiffness,
+        .nearStiffness    = nearStiffness,
+        .restDensity      = restDensity,
+        .viscosity        = viscosity,
+    };
+
+    auto queue = mDevice.GetQueue();
+    queue.WriteBuffer(mEnvironmentBuffer, 0, &environment, sizeof(Environment));
+    queue.WriteBuffer(mSPHParamsBuffer, 0, &sphParams, sizeof(SPHParams));
 }
 
 void SPHSimulator::InitializeGridClearPipeline()
@@ -797,6 +851,23 @@ void SPHSimulator::ComputeCopyPosition(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mCopyPositionBindGroup, 0, nullptr);
     computePass.SetPipeline(mCopyPositionPipeline);
     computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
+}
+
+void SPHSimulator::Reset(int numParticles,
+                         const glm::vec3& initHalfBoxSize,
+                         RenderUniforms& renderUniforms)
+{
+    renderUniforms.sphereSize = mRenderDiameter;
+
+    std::vector<SPHParticle> particles = InitializeDamBreak(initHalfBoxSize, numParticles);
+
+    wgpu::Queue queue = mDevice.GetQueue();
+    queue.WriteBuffer(mSPHParamsBuffer,
+                      offsetof(SPHParams, n),
+                      &mNumParticles,
+                      sizeof(unsigned int));
+    queue.WriteBuffer(mParticleBuffer, 0, particles.data(), sizeof(SPHParticle) * particles.size());
+    queue.WriteBuffer(mRealBoxSizeBuffer, 0, glm::value_ptr(initHalfBoxSize), sizeof(glm::vec3));
 }
 
 std::vector<SPHParticle> SPHSimulator::InitializeDamBreak(const glm::vec3& initHalfBoxSize,

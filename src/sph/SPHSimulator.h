@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <PrefixSumKernel.h>
 
+struct RenderUniforms;
+
 static constexpr int NUM_PARTICLES_MIN           = 10000;
 static constexpr int NUM_PARTICLES_MAX           = 200000;
 static constexpr int SPH_PARTICLE_STRUCTURE_SIZE = 64;
@@ -55,6 +57,7 @@ public:
 
 private:
     void CreateBuffers();
+    void WriteBuffers(float renderDiameter);
 
     // Grid Clear
     void InitializeGridClearPipeline();
@@ -90,6 +93,8 @@ private:
     void InitializeCopyPositionPipeline();
     void InitializeCopyPositionBindGroups(wgpu::Buffer particleBuffer, wgpu::Buffer posvelBuffer);
     void ComputeCopyPosition(wgpu::ComputePassEncoder& computePass);
+
+    void Reset(int numParticles, const glm::vec3& initHalfBoxSize, RenderUniforms& renderUniforms);
 
     std::vector<SPHParticle> InitializeDamBreak(const glm::vec3& initHalfBoxSize, int numParticles);
 
@@ -147,11 +152,12 @@ private:
     wgpu::Buffer mSPHParamsBuffer;
     wgpu::Buffer mTargetParticlesBuffer;
     wgpu::Buffer mRealBoxSizeBuffer;
+    wgpu::Buffer mParticleBuffer;
 
     std::unique_ptr<PrefixSumKernel> mPrefixSumkernel;
 
-    int mGridCount      = 100;  // FIXME
-    int mNumParticles   = 100;  // FIXME
-    float mKernelRadius = 0.07;
+    int mGridCount             = 0;
+    unsigned int mNumParticles = 0;
+    float mKernelRadius        = 0.07;
     float mRenderDiameter;
 };
