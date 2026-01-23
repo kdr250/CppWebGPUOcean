@@ -39,6 +39,7 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
     // TODO: Radix Sort PrefixSumKerne cellParticleCountBuffer
     ComputeReorder(computePass);
     ComputeDensity(computePass);
+    ComputeForce(computePass);
 
     computePass.End();
 }
@@ -586,10 +587,17 @@ void SPHSimulator::InitializeForceBindGroups(wgpu::Buffer particleBuffer)
     bindings[4].size    = mSPHParamsBuffer.GetSize();
 
     wgpu::BindGroupDescriptor bindGroupDesc {
-        .label      = WebGPUUtils::GenerateString("density bind group"),
+        .label      = WebGPUUtils::GenerateString("force bind group"),
         .layout     = mForceBindGroupLayout,
         .entryCount = static_cast<uint32_t>(bindings.size()),
         .entries    = bindings.data(),
     };
     mForceBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void SPHSimulator::ComputeForce(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mForceBindGroup, 0, nullptr);
+    computePass.SetPipeline(mForcePipeline);
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
 }
