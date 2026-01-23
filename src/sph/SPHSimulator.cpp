@@ -260,7 +260,7 @@ void SPHSimulator::ComputeGridBuild(wgpu::ComputePassEncoder& computePass)
 {
     computePass.SetBindGroup(0, mGridBuildBindGroup, 0, nullptr);
     computePass.SetPipeline(mGridBuildPipeline);
-    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
 }
 
 void SPHSimulator::InitializeReorderPipeline()
@@ -381,7 +381,7 @@ void SPHSimulator::ComputeReorder(wgpu::ComputePassEncoder& computePass)
 {
     computePass.SetBindGroup(0, mReorderBindGroup, 0, nullptr);
     computePass.SetPipeline(mReorderPipeline);
-    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
 }
 
 void SPHSimulator::InitializeDensityPipeline()
@@ -490,7 +490,7 @@ void SPHSimulator::ComputeDensity(wgpu::ComputePassEncoder& computePass)
 {
     computePass.SetBindGroup(0, mDensityBindGroup, 0, nullptr);
     computePass.SetPipeline(mDensityPipeline);
-    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
 }
 
 void SPHSimulator::InitializeForcePipeline()
@@ -599,5 +599,5 @@ void SPHSimulator::ComputeForce(wgpu::ComputePassEncoder& computePass)
 {
     computePass.SetBindGroup(0, mForceBindGroup, 0, nullptr);
     computePass.SetPipeline(mForcePipeline);
-    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
 }
