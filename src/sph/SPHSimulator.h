@@ -2,6 +2,7 @@
 
 #include <webgpu/webgpu_cpp.h>
 #include <glm/glm.hpp>
+#include <PrefixSumKernel.h>
 
 static constexpr int NUM_PARTICLES_MIN           = 10000;
 static constexpr int NUM_PARTICLES_MAX           = 200000;
@@ -131,6 +132,8 @@ private:
     wgpu::Buffer mSPHParamsBuffer;
     wgpu::Buffer mTargetParticlesBuffer;
     wgpu::Buffer mRealBoxSizeBuffer;
+
+    std::unique_ptr<PrefixSumKernel> mPrefixSumkernel;
 
     int mGridCount    = 100;  // FIXME
     int mNumParticles = 100;  // FIXME

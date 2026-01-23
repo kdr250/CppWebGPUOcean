@@ -241,27 +241,10 @@ PrefixSumKernel::PrefixSumKernel(wgpu::Device device,
                                  std::pair<int, int> workgroupSize,
                                  bool avoidBankConflicts)
 {
-    mDevice              = device;
-    mWorkGroupSize       = workgroupSize;
-    mThreadsPerWorkgroup = mWorkGroupSize.first * mWorkGroupSize.second;
-    mItemsPerWorkgroup   = 2 * mThreadsPerWorkgroup;
-
-    assert(std::has_single_bit((unsigned int)mThreadsPerWorkgroup));
-
-    wgpu::ShaderSourceWGSL shaderCodeDesc {};
-    shaderCodeDesc.nextInChain = nullptr;
-    shaderCodeDesc.sType       = wgpu::SType::ShaderSourceWGSL;
-    shaderCodeDesc.code = avoidBankConflicts ? wgpu::StringView(prefixSumSource_NoBankConflict)
-                                             : wgpu::StringView(prefixSumSource);
-
-    wgpu::ShaderModuleDescriptor shaderDesc {
-        .label       = wgpu::StringView("prefix-sum"),
-        .nextInChain = &shaderCodeDesc,
-    };
-
-    mShaderModule = mDevice.CreateShaderModule(&shaderDesc);
-
-    CreatePassRecursive(data, count);
+    mDevice                = device;
+    mPreviousAvoidConflict = avoidBankConflicts;
+    LoadShader(avoidBankConflicts);
+    Reset(data, count, workgroupSize, avoidBankConflicts);
 }
 
 void PrefixSumKernel::Dispatch(wgpu::ComputePassEncoder& pass,
@@ -284,6 +267,27 @@ void PrefixSumKernel::Dispatch(wgpu::ComputePassEncoder& pass,
             pass.DispatchWorkgroupsIndirect(dispatchSizeBuffer, offset + i * 3 * 4);
         }
     }
+}
+
+void PrefixSumKernel::Reset(wgpu::Buffer data,
+                            int count,
+                            std::pair<int, int> workgroupSize,
+                            bool avoidBankConflicts)
+{
+    mPipelines.clear();
+
+    mWorkGroupSize       = workgroupSize;
+    mThreadsPerWorkgroup = mWorkGroupSize.first * mWorkGroupSize.second;
+    mItemsPerWorkgroup   = 2 * mThreadsPerWorkgroup;
+
+    assert(std::has_single_bit((unsigned int)mThreadsPerWorkgroup));
+
+    if (mPreviousAvoidConflict != avoidBankConflicts)
+    {
+        LoadShader(avoidBankConflicts);
+    }
+
+    CreatePassRecursive(data, count);
 }
 
 void PrefixSumKernel::CreatePassRecursive(wgpu::Buffer data, int count)
@@ -412,4 +416,20 @@ void PrefixSumKernel::CreatePassRecursive(wgpu::Buffer data, int count)
 
         mPipelines.emplace_back(blockSumPipeline, bindGroup, dispatchSize);
     }
+}
+
+void PrefixSumKernel::LoadShader(bool avoidBankConflicts)
+{
+    wgpu::ShaderSourceWGSL shaderCodeDesc {};
+    shaderCodeDesc.nextInChain = nullptr;
+    shaderCodeDesc.sType       = wgpu::SType::ShaderSourceWGSL;
+    shaderCodeDesc.code = avoidBankConflicts ? wgpu::StringView(prefixSumSource_NoBankConflict)
+                                             : wgpu::StringView(prefixSumSource);
+
+    wgpu::ShaderModuleDescriptor shaderDesc {
+        .label       = wgpu::StringView("prefix-sum"),
+        .nextInChain = &shaderCodeDesc,
+    };
+
+    mShaderModule = mDevice.CreateShaderModule(&shaderDesc);
 }

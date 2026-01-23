@@ -29,6 +29,9 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     InitializeForceBindGroups(particleBuffer);
     InitializeIntegrateBindGroups(particleBuffer);
     InitializeCopyPositionBindGroups(particleBuffer, posvelBuffer);
+
+    mPrefixSumkernel =
+        std::make_unique<PrefixSumKernel>(mDevice, mCellParticleCountBuffer, mGridCount + 1);
 }
 
 void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
