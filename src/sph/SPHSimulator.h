@@ -71,6 +71,7 @@ private:
 
     // Integrate
     void InitializeIntegratePipeline();
+    void InitializeIntegrateBindGroups(wgpu::Buffer particleBuffer);
 
 private:
     wgpu::Device mDevice;
@@ -117,6 +118,7 @@ private:
     wgpu::Buffer mEnvironmentBuffer;
     wgpu::Buffer mSPHParamsBuffer;
     wgpu::Buffer mTargetParticlesBuffer;
+    wgpu::Buffer mRealBoxSizeBuffer;
 
     int mGridCount    = 100;  // FIXME
     int mNumParticles = 100;  // FIXME

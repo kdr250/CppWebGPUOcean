@@ -26,6 +26,7 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     InitializeReorderBindGroups(particleBuffer);
     InitializeDensityBindGroups(particleBuffer);
     InitializeForceBindGroups(particleBuffer);
+    InitializeIntegrateBindGroups(particleBuffer);
 }
 
 void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
@@ -88,6 +89,14 @@ void SPHSimulator::CreateBuffers()
     bufferDesc.mappedAtCreation = false;
 
     mTargetParticlesBuffer = mDevice.CreateBuffer(&bufferDesc);
+
+    // real box size
+    bufferDesc.label            = WebGPUUtils::GenerateString("real box size buffer");
+    bufferDesc.size             = sizeof(glm::vec3);
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform;
+    bufferDesc.mappedAtCreation = false;
+
+    mRealBoxSizeBuffer = mDevice.CreateBuffer(&bufferDesc);
 }
 
 void SPHSimulator::InitializeGridClearPipeline()
@@ -653,4 +662,32 @@ void SPHSimulator::InitializeIntegratePipeline()
     };
 
     mIntegratePipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
+}
+
+void SPHSimulator::InitializeIntegrateBindGroups(wgpu::Buffer particleBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(3);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = particleBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = particleBuffer.GetSize();
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mRealBoxSizeBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = mRealBoxSizeBuffer.GetSize();
+
+    bindings[2].binding = 2;
+    bindings[2].buffer  = mSPHParamsBuffer;
+    bindings[2].offset  = 0;
+    bindings[2].size    = mSPHParamsBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("integrate bind group"),
+        .layout     = mIntegrateBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mIntegrateBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
