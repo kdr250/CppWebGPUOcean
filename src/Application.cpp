@@ -164,8 +164,8 @@ bool Application::Initialize()
     float radius   = 0.04f;
     float diameter = 2.0f * radius;
 
-    mCamera = std::make_unique<Camera>();
-    mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
+    mSPHSimulator =
+        std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
 
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
                                                      mRenderUniforms.screenSize,
@@ -175,9 +175,10 @@ bool Application::Initialize()
                                                      mRenderUniformBuffer,
                                                      mPosvelBuffer);
 
-    mSPHSimulator =
-        std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
+    mCamera = std::make_unique<Camera>();
+
     mSPHSimulator->Reset(20000, glm::vec3(1.0f, 2.0f, 1.0f), mRenderUniforms);
+    mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
