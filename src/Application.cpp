@@ -3,12 +3,6 @@
 #include <glfw3webgpu.h>
 #include <iostream>
 
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_LEFT_HANDED
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/ext.hpp>
-#include <glm/glm.hpp>
-
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
 

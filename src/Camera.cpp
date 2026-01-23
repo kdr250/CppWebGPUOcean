@@ -33,7 +33,7 @@ void Camera::Reset(RenderUniforms& renderUniforms,
 
     auto windowSize = renderUniforms.screenSize;
     float aspect    = windowSize.x / windowSize.y;
-    auto projection = glm::perspective(this->fov, aspect, 0.1f, 1000.0f);
+    auto projection = glm::perspectiveLH(this->fov, aspect, 0.1f, 1000.0f);
 
     renderUniforms.projectionMatrix    = projection;
     renderUniforms.invProjectionMatrix = glm::inverse(projection);
@@ -57,7 +57,7 @@ void Camera::RecalculateView(RenderUniforms& renderUniforms)
     std::cout << "target = { " << target.x << ", " << target.y << ", " << target.z << " }"
               << std::endl;
 
-    auto view = glm::lookAt(cameraPosition, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
+    auto view = glm::lookAtLH(cameraPosition, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
 
     renderUniforms.viewMatrix    = view;
     renderUniforms.invViewMatrix = glm::inverse(view);
