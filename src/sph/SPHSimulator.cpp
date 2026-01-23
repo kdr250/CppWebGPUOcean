@@ -895,7 +895,7 @@ std::vector<SPHParticle> SPHSimulator::InitializeDamBreak(const glm::vec3& initH
                     .density     = 0.0f,
                     .nearDensity = 0.0f,
                 };
-                particles.push_back(particle);
+                particles[mNumParticles] = particle;
                 mNumParticles++;
             }
         }
