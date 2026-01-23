@@ -57,6 +57,7 @@ private:
     // Reorder
     void InitializeReorderPipeline();
     void InitializeReorderBindGroups(wgpu::Buffer particleBuffer);
+    void ComputeReorder(wgpu::ComputePassEncoder& computePass);
 
 private:
     wgpu::Device mDevice;

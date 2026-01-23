@@ -20,6 +20,7 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     // BindGroups
     InitializeGridClearBindGroups();
     InitializeGridBuildBindGroups(particleBuffer);
+    InitializeReorderBindGroups(particleBuffer);
 }
 
 void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
@@ -31,6 +32,7 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
 
     ComputeGridClear(computePass);
     ComputeGridBuild(computePass);
+    ComputeReorder(computePass);
 
     computePass.End();
 }
@@ -329,7 +331,7 @@ void SPHSimulator::InitializeReorderBindGroups(wgpu::Buffer particleBuffer)
 {
     std::vector<wgpu::BindGroupEntry> bindings(6);
 
-    bindings[0].binding = 1;
+    bindings[0].binding = 0;
     bindings[0].buffer  = particleBuffer;
     bindings[0].offset  = 0;
     bindings[0].size    = particleBuffer.GetSize();
@@ -351,7 +353,7 @@ void SPHSimulator::InitializeReorderBindGroups(wgpu::Buffer particleBuffer)
 
     bindings[4].binding = 4;
     bindings[4].buffer  = mEnvironmentBuffer;
-    bindings[4].offset  = 4;
+    bindings[4].offset  = 0;
     bindings[4].size    = mEnvironmentBuffer.GetSize();
 
     bindings[5].binding = 5;
@@ -360,10 +362,17 @@ void SPHSimulator::InitializeReorderBindGroups(wgpu::Buffer particleBuffer)
     bindings[5].size    = mSPHParamsBuffer.GetSize();
 
     wgpu::BindGroupDescriptor bindGroupDesc {
-        .label      = WebGPUUtils::GenerateString("grid build bind group"),
-        .layout     = mGridBuildBindGroupLayout,
+        .label      = WebGPUUtils::GenerateString("reorder bind group"),
+        .layout     = mReorderBindGroupLayout,
         .entryCount = static_cast<uint32_t>(bindings.size()),
         .entries    = bindings.data(),
     };
-    mGridBuildBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+    mReorderBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void SPHSimulator::ComputeReorder(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mReorderBindGroup, 0, nullptr);
+    computePass.SetPipeline(mReorderPipeline);
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
 }
