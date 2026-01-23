@@ -17,6 +17,7 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     InitializeGridBuildPipeline();
     InitializeReorderPipeline();
     InitializeDensityPipeline();
+    InitializeForcePipeline();
 
     // BindGroups
     InitializeGridClearBindGroups();
@@ -488,4 +489,68 @@ void SPHSimulator::ComputeDensity(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mDensityBindGroup, 0, nullptr);
     computePass.SetPipeline(mDensityPipeline);
     computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64));
+}
+
+void SPHSimulator::InitializeForcePipeline()
+{
+    wgpu::ShaderModule forceModule =
+        ResourceManager::LoadShaderModule("resources/shader/sph/force.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(5);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout0 = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout0);
+    bindingLayout0.binding     = 0;
+    bindingLayout0.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout0.buffer.type = wgpu::BufferBindingType::Storage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout1 = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout1);
+    bindingLayout1.binding     = 1;
+    bindingLayout1.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout1.buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout2 = bindingLayoutEentries[2];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout2);
+    bindingLayout2.binding     = 2;
+    bindingLayout2.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout2.buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout3 = bindingLayoutEentries[3];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout3);
+    bindingLayout3.binding     = 3;
+    bindingLayout3.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout3.buffer.type = wgpu::BufferBindingType::Uniform;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout4 = bindingLayoutEentries[4];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout4);
+    bindingLayout4.binding     = 4;
+    bindingLayout4.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout4.buffer.type = wgpu::BufferBindingType::Uniform;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mForceBindGroupLayout          = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mForceBindGroupLayout;
+    mForceLayout                    = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::ComputePipelineDescriptor computePipelineDesc {
+        .label  = WebGPUUtils::GenerateString("force pipeline"),
+        .layout = mForceLayout,
+        .compute =
+            {
+                .module     = forceModule,
+                .entryPoint = "computeForce",
+            },
+    };
+
+    mForcePipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
 }

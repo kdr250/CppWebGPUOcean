@@ -64,6 +64,9 @@ private:
     void InitializeDensityBindGroups(wgpu::Buffer particleBuffer);
     void ComputeDensity(wgpu::ComputePassEncoder& computePass);
 
+    // Force
+    void InitializeForcePipeline();
+
 private:
     wgpu::Device mDevice;
 
@@ -90,6 +93,12 @@ private:
     wgpu::PipelineLayout mDensityLayout;
     wgpu::BindGroupLayout mDensityBindGroupLayout;
     wgpu::BindGroup mDensityBindGroup;
+
+    // Force
+    wgpu::ComputePipeline mForcePipeline;
+    wgpu::PipelineLayout mForceLayout;
+    wgpu::BindGroupLayout mForceBindGroupLayout;
+    wgpu::BindGroup mForceBindGroup;
 
     // Buffers
     wgpu::Buffer mCellParticleCountBuffer;  // 累積和
