@@ -55,6 +55,13 @@ public:
 
     void Compute(wgpu::CommandEncoder commandEncoder);
 
+    void Reset(int numParticles, const glm::vec3& initHalfBoxSize, RenderUniforms& renderUniforms);
+
+    unsigned int GetNumParticles() const
+    {
+        return mNumParticles;
+    }
+
 private:
     void CreateBuffers();
     void WriteBuffers(float renderDiameter);
@@ -93,8 +100,6 @@ private:
     void InitializeCopyPositionPipeline();
     void InitializeCopyPositionBindGroups(wgpu::Buffer particleBuffer, wgpu::Buffer posvelBuffer);
     void ComputeCopyPosition(wgpu::ComputePassEncoder& computePass);
-
-    void Reset(int numParticles, const glm::vec3& initHalfBoxSize, RenderUniforms& renderUniforms);
 
     std::vector<SPHParticle> InitializeDamBreak(const glm::vec3& initHalfBoxSize, int numParticles);
 

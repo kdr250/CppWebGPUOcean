@@ -64,6 +64,23 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
     computePass.End();
 }
 
+void SPHSimulator::Reset(int numParticles,
+                         const glm::vec3& initHalfBoxSize,
+                         RenderUniforms& renderUniforms)
+{
+    renderUniforms.sphereSize = mRenderDiameter;
+
+    std::vector<SPHParticle> particles = InitializeDamBreak(initHalfBoxSize, numParticles);
+
+    wgpu::Queue queue = mDevice.GetQueue();
+    queue.WriteBuffer(mSPHParamsBuffer,
+                      offsetof(SPHParams, n),
+                      &mNumParticles,
+                      sizeof(unsigned int));
+    queue.WriteBuffer(mParticleBuffer, 0, particles.data(), sizeof(SPHParticle) * particles.size());
+    queue.WriteBuffer(mRealBoxSizeBuffer, 0, glm::value_ptr(initHalfBoxSize), sizeof(glm::vec3));
+}
+
 void SPHSimulator::CreateBuffers()
 {
     wgpu::BufferDescriptor bufferDesc {};
@@ -851,23 +868,6 @@ void SPHSimulator::ComputeCopyPosition(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mCopyPositionBindGroup, 0, nullptr);
     computePass.SetPipeline(mCopyPositionPipeline);
     computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
-}
-
-void SPHSimulator::Reset(int numParticles,
-                         const glm::vec3& initHalfBoxSize,
-                         RenderUniforms& renderUniforms)
-{
-    renderUniforms.sphereSize = mRenderDiameter;
-
-    std::vector<SPHParticle> particles = InitializeDamBreak(initHalfBoxSize, numParticles);
-
-    wgpu::Queue queue = mDevice.GetQueue();
-    queue.WriteBuffer(mSPHParamsBuffer,
-                      offsetof(SPHParams, n),
-                      &mNumParticles,
-                      sizeof(unsigned int));
-    queue.WriteBuffer(mParticleBuffer, 0, particles.data(), sizeof(SPHParticle) * particles.size());
-    queue.WriteBuffer(mRealBoxSizeBuffer, 0, glm::value_ptr(initHalfBoxSize), sizeof(glm::vec3));
 }
 
 std::vector<SPHParticle> SPHSimulator::InitializeDamBreak(const glm::vec3& initHalfBoxSize,

@@ -164,15 +164,8 @@ bool Application::Initialize()
     float radius   = 0.04f;
     float diameter = 2.0f * radius;
 
-    mRenderUniforms.sphereSize = diameter;
-
     mCamera = std::make_unique<Camera>();
     mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
-
-    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
-
-    InitializeParticles(glm::vec3(1.0f, 2.0f, 1.0f), 20000);
-    mQueue.WriteBuffer(mPosvelBuffer, 0, mPosvel.data(), sizeof(PosVel) * mPosvel.size());
 
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
                                                      mRenderUniforms.screenSize,
@@ -184,6 +177,9 @@ bool Application::Initialize()
 
     mSPHSimulator =
         std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
+    mSPHSimulator->Reset(20000, glm::vec3(1.0f, 2.0f, 1.0f), mRenderUniforms);
+
+    mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
     return true;
 }
@@ -229,7 +225,7 @@ void Application::InitializeBuffers()
 
     // particle storage buffer
     bufferDesc.label            = WebGPUUtils::GenerateString("particle storage buffer");
-    bufferDesc.size             = SPH_PARTICLE_STRUCTURE_SIZE * NUM_PARTICLES_MAX;
+    bufferDesc.size             = sizeof(SPHParticle) * NUM_PARTICLES_MAX;
     bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
     bufferDesc.mappedAtCreation = false;
 
@@ -242,41 +238,6 @@ void Application::InitializeBuffers()
     bufferDesc.mappedAtCreation = false;
 
     mPosvelBuffer = mDevice.CreateBuffer(&bufferDesc);
-}
-
-void Application::InitializeParticles(const glm::vec3& initHalfBoxSize, uint32_t numParticles)
-{
-    mPosvel.clear();
-    mPosvel.resize(numParticles);
-    uint32_t particleCount   = 0;
-    const float DIST_FACTOR  = 0.5;
-    const float kernelRadius = 0.07;
-
-    for (float y = -initHalfBoxSize[1] * 0.95; particleCount < numParticles;
-         y += DIST_FACTOR * kernelRadius)
-    {
-        for (float x = -0.95 * initHalfBoxSize[0];
-             x < 0.95 * initHalfBoxSize[0] && particleCount < numParticles;
-             x += DIST_FACTOR * kernelRadius)
-        {
-            for (float z = -0.95 * initHalfBoxSize[2];
-                 z < 0 * initHalfBoxSize[2] && particleCount < numParticles;
-                 z += DIST_FACTOR * kernelRadius)
-            {
-                mPosvel[particleCount].position = glm::vec3(0.0, 0.0, 0.0);
-                mPosvel[particleCount].v        = glm::vec3(0.0f, 0.0f, 0.0f);
-                particleCount++;
-            }
-        }
-    }
-
-    // FIXME
-    for (int i = 19000; i < 20000; ++i)
-    {
-        auto pos = mPosvel[i].position;
-        std::cout << "particle " << i << ": { " << pos.x << ", " << pos.y << ", " << pos.z << " }"
-                  << std::endl;
-    }
 }
 
 void Application::Loop()
@@ -317,7 +278,7 @@ void Application::GenerateOutput()
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
     mSPHSimulator->Compute(commandEncoder);
-    mFluidRenderer->Draw(commandEncoder, targetView, mPosvel.size(), true);
+    mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles(), true);
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {

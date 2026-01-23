@@ -50,9 +50,6 @@ public:
 private:
     void InitializeBuffers();
 
-    // FIXME
-    void InitializeParticles(const glm::vec3& initHalfBoxSize, uint32_t numParticles);
-
     void Loop();
 
     void ProcessInput();
@@ -86,7 +83,6 @@ private:
     wgpu::Buffer mPosvelBuffer;
 
     RenderUniforms mRenderUniforms;
-    std::vector<PosVel> mPosvel;
 
     std::unique_ptr<SPHSimulator> mSPHSimulator;
 };
