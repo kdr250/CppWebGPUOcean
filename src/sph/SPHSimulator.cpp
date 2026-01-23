@@ -32,6 +32,7 @@ void SPHSimulator::Compute(wgpu::CommandEncoder commandEncoder)
 
     ComputeGridClear(computePass);
     ComputeGridBuild(computePass);
+    // TODO: Radix Sort PrefixSumKerne cellParticleCountBuffer
     ComputeReorder(computePass);
 
     computePass.End();
