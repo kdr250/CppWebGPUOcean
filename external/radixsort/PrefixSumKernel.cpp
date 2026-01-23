@@ -391,14 +391,14 @@ void PrefixSumKernel::CreatePassRecursive(wgpu::Buffer data, int count)
 
         // Constants
         std::vector<wgpu::ConstantEntry> blockSumConstantsEntries(4);
-        constantsEntries[0].key   = wgpu::StringView("WORKGROUP_SIZE_X");
-        constantsEntries[0].value = mWorkGroupSize.first;
-        constantsEntries[1].key   = wgpu::StringView("WORKGROUP_SIZE_Y");
-        constantsEntries[1].value = mWorkGroupSize.second;
-        constantsEntries[2].key   = wgpu::StringView("THREADS_PER_WORKGROUP");
-        constantsEntries[2].value = mThreadsPerWorkgroup;
-        constantsEntries[3].key   = wgpu::StringView("ELEMENT_COUNT");
-        constantsEntries[3].value = count;
+        blockSumConstantsEntries[0].key   = wgpu::StringView("WORKGROUP_SIZE_X");
+        blockSumConstantsEntries[0].value = mWorkGroupSize.first;
+        blockSumConstantsEntries[1].key   = wgpu::StringView("WORKGROUP_SIZE_Y");
+        blockSumConstantsEntries[1].value = mWorkGroupSize.second;
+        blockSumConstantsEntries[2].key   = wgpu::StringView("THREADS_PER_WORKGROUP");
+        blockSumConstantsEntries[2].value = mThreadsPerWorkgroup;
+        blockSumConstantsEntries[3].key   = wgpu::StringView("ELEMENT_COUNT");
+        blockSumConstantsEntries[3].value = count;
 
         // Add block sums to local prefix sums
         wgpu::ComputePipelineDescriptor blockSumPipelineDesc {
