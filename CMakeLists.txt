@@ -36,6 +36,7 @@ add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
 
 add_subdirectory(external/glfw3webgpu glfw3webgpu)
+add_subdirectory(external/radixsort radixsort)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
@@ -54,6 +55,7 @@ if (EMSCRIPTEN)
         dawn::webgpu_dawn
         glm::glm
         glfw3webgpu
+        radixsort
     )
 
     target_include_directories(
@@ -73,6 +75,7 @@ else()
         dawn::webgpu_dawn
         glm::glm
         glfw3webgpu
+        radixsort
     )
 
     target_include_directories(
