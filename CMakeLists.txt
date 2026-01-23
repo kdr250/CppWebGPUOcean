@@ -35,7 +35,7 @@ add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
 
-add_subdirectory(external glfw3webgpu)
+add_subdirectory(external/glfw3webgpu glfw3webgpu)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
