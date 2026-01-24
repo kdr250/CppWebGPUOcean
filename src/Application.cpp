@@ -65,10 +65,10 @@ bool Application::Initialize()
                        });
 
     // create instance
-    wgpu::Instance instance = wgpu::CreateInstance(nullptr);
+    mInstance = wgpu::CreateInstance(nullptr);
 
     // create surface
-    mSurface = glfwCreateWindowWGPUSurface(instance.Get(), mWindow);
+    mSurface = glfwCreateWindowWGPUSurface(mInstance.Get(), mWindow);
 
     // get adaptor
     std::cout << "Requesting adapter..." << std::endl;
@@ -76,7 +76,7 @@ bool Application::Initialize()
         .nextInChain       = nullptr,
         .compatibleSurface = mSurface,
     };
-    wgpu::Adapter adapter = WebGPUUtils::RequestAdapterSync(instance, &adapterOptions);
+    wgpu::Adapter adapter = WebGPUUtils::RequestAdapterSync(mInstance, &adapterOptions);
     std::cout << "Got adapter: " << adapter.Get() << std::endl;
 
     WebGPUUtils::InspectAdapter(adapter);
@@ -227,12 +227,21 @@ void Application::InitializeBuffers()
     mParticleBuffer = mDevice.CreateBuffer(&bufferDesc);
 
     // position storage buffer
-    bufferDesc.label            = WebGPUUtils::GenerateString("position storage buffer");
-    bufferDesc.size             = sizeof(PosVel) * NUM_PARTICLES_MAX;
-    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
+    bufferDesc.label = WebGPUUtils::GenerateString("position storage buffer");
+    bufferDesc.size  = sizeof(PosVel) * NUM_PARTICLES_MAX;
+    bufferDesc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage
+                       | wgpu::BufferUsage::CopySrc;  // FIXME
     bufferDesc.mappedAtCreation = false;
 
     mPosvelBuffer = mDevice.CreateBuffer(&bufferDesc);
+
+    // FIXME: Debug
+    bufferDesc.label            = WebGPUUtils::GenerateString("debug map buffer");
+    bufferDesc.size             = sizeof(PosVel) * NUM_PARTICLES_MAX;
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::MapRead;
+    bufferDesc.mappedAtCreation = false;
+
+    mMapBuffer = mDevice.CreateBuffer(&bufferDesc);
 }
 
 void Application::Loop()
@@ -273,6 +282,7 @@ void Application::GenerateOutput()
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
     mSPHSimulator->Compute(commandEncoder);
+    commandEncoder.CopyBufferToBuffer(mPosvelBuffer, 0, mMapBuffer, 0, mPosvelBuffer.GetSize());
     mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles(), true);
 
     // Finally encode and submit the render pass
@@ -283,6 +293,41 @@ void Application::GenerateOutput()
     wgpu::CommandBuffer command = commandEncoder.Finish(&cmdBufferDescriptor);
 
     mQueue.Submit(1, &command);
+
+    // Print output
+    bool done   = false;
+    auto handle = mMapBuffer.MapAsync(
+        wgpu::MapMode::Read,
+        0,
+        mMapBuffer.GetSize(),
+        wgpu::CallbackMode::AllowProcessEvents,
+        [&](wgpu::MapAsyncStatus status, wgpu::StringView message)
+        {
+            if (status == wgpu::MapAsyncStatus::Success)
+            {
+                const PosVel* output =
+                    (const PosVel*)mMapBuffer.GetConstMappedRange(0, mMapBuffer.GetSize());
+                for (int i = 0; i < 100; ++i)
+                {
+                    auto pos = output[i].position;
+                    auto v   = output[i].v;
+                    std::cout << "PosVel " << i << ": pos { " << pos.x << ", " << pos.y << ", "
+                              << pos.z << " }, v = " << v.x << ", " << v.y << ", " << v.z << " }"
+                              << std::endl;
+                }
+                mMapBuffer.Unmap();
+            }
+            else
+            {
+                std::cout << "Not Success!" << std::endl;
+            }
+            done = true;
+        });
+
+    while (!done)
+    {
+        mInstance.ProcessEvents();
+    }
 
 #ifndef __EMSCRIPTEN__
     mSurface.Present();

@@ -71,6 +71,7 @@ private:
 
 private:
     GLFWwindow* mWindow;
+    wgpu::Instance mInstance           = nullptr;
     wgpu::Device mDevice               = nullptr;
     wgpu::Queue mQueue                 = nullptr;
     wgpu::Surface mSurface             = nullptr;
@@ -82,6 +83,7 @@ private:
     wgpu::Buffer mRenderUniformBuffer;
     wgpu::Buffer mParticleBuffer;
     wgpu::Buffer mPosvelBuffer;
+    wgpu::Buffer mMapBuffer;  // FIXME
 
     RenderUniforms mRenderUniforms;
 
