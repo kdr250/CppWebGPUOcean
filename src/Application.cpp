@@ -2,6 +2,7 @@
 
 #include <glfw3webgpu.h>
 #include <iostream>
+#include <fstream>
 
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
@@ -158,8 +159,8 @@ bool Application::Initialize()
     float radius   = 0.04f;
     float diameter = 2.0f * radius;
 
-    mSPHSimulator =
-        std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
+    // mSPHSimulator =
+    //     std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
 
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
                                                      mRenderUniforms.screenSize,
@@ -171,10 +172,12 @@ bool Application::Initialize()
 
     mCamera = std::make_unique<Camera>();
 
-    mSPHSimulator->Reset(20000, glm::vec3(1.0f, 2.0f, 1.0f), mRenderUniforms);
+    // mSPHSimulator->Reset(20000, glm::vec3(1.0f, 2.0f, 1.0f), mRenderUniforms);
     mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
+
+    InitializeParticles();
 
     return true;
 }
@@ -281,9 +284,10 @@ void Application::GenerateOutput()
     };
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
-    mSPHSimulator->Compute(commandEncoder);
+    // mSPHSimulator->Compute(commandEncoder);
     commandEncoder.CopyBufferToBuffer(mPosvelBuffer, 0, mMapBuffer, 0, mPosvelBuffer.GetSize());
-    mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles(), true);
+    // mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles(), true);
+    mFluidRenderer->Draw(commandEncoder, targetView, 20000, true);
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {
@@ -305,15 +309,13 @@ void Application::GenerateOutput()
         {
             if (status == wgpu::MapAsyncStatus::Success)
             {
-                const PosVel* output =
-                    (const PosVel*)mMapBuffer.GetConstMappedRange(0, mMapBuffer.GetSize());
-                for (int i = 0; i < 100; ++i)
+                const float* buffer =
+                    (const float*)mMapBuffer.GetConstMappedRange(0, mMapBuffer.GetSize());
+                for (int i = 0; i < 100 * 6; i += 6)
                 {
-                    auto pos = output[i].position;
-                    auto v   = output[i].v;
-                    std::cout << "PosVel " << i << ": pos { " << pos.x << ", " << pos.y << ", "
-                              << pos.z << " }, v = " << v.x << ", " << v.y << ", " << v.z << " }"
-                              << std::endl;
+                    // std::cout << "pos { " << buffer[i] << ", " << buffer[i + 1] << ", "
+                    //           << buffer[i + 2] << " }, vel = { " << buffer[i + 3] << ", "
+                    //           << buffer[i + 4] << ", " << buffer[i + 5] << " }" << std::endl;
                 }
                 mMapBuffer.Unmap();
             }
@@ -466,4 +468,35 @@ void Application::OnKeyAction(int key, int scancode, int action, int mods)
 bool Application::ShouldClose()
 {
     return glfwWindowShouldClose(mWindow) == GLFW_TRUE;
+}
+
+void Application::InitializeParticles()
+{
+    std::ifstream binary("resources/binary/output.bin", std::ios::in | std::ios::binary);
+    if (!binary.is_open())
+    {
+        std::cout << "can't open binary file!" << std::endl;
+        return;
+    }
+
+    binary.seekg(0, std::ios::end);
+    long long int size = binary.tellg();
+    binary.seekg(0, std::ios::beg);
+
+    size_t numFloats = size / sizeof(float);
+    std::vector<float> buffer(numFloats);
+
+    if (binary.read(reinterpret_cast<char*>(buffer.data()), size))
+    {
+        std::cout << "Read " << numFloats << " floats." << std::endl;
+    }
+
+    for (int i = 0; i < 100 * 6; i += 6)
+    {
+        std::cout << "pos { " << buffer[i] << ", " << buffer[i + 1] << ", " << buffer[i + 2]
+                  << " }, vel = { " << buffer[i + 3] << ", " << buffer[i + 4] << ", "
+                  << buffer[i + 5] << " }" << std::endl;
+    }
+
+    mQueue.WriteBuffer(mPosvelBuffer, 0, buffer.data(), size);
 }

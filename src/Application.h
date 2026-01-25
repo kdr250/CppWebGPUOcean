@@ -69,6 +69,9 @@ private:
 
     bool ShouldClose();
 
+    // FIXME
+    void InitializeParticles();
+
 private:
     GLFWwindow* mWindow;
     wgpu::Instance mInstance           = nullptr;
