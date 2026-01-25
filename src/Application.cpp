@@ -300,6 +300,7 @@ void Application::GenerateOutput()
 
     mQueue.Submit(1, &command);
 
+#ifndef __EMSCRIPTEN__
     // Print output
     bool done   = false;
     auto handle = mMapBuffer.MapAsync(
@@ -334,6 +335,7 @@ void Application::GenerateOutput()
     {
         mInstance.ProcessEvents();
     }
+#endif
 
 #ifndef __EMSCRIPTEN__
     mSurface.Present();
