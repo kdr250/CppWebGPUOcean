@@ -159,6 +159,8 @@ bool Application::Initialize()
     float radius   = 0.04f;
     float diameter = 2.0f * radius;
 
+    mRenderUniforms.sphereSize = diameter;  // FIXME
+
     // mSPHSimulator =
     //     std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
 
