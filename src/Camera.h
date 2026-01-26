@@ -39,4 +39,5 @@ public:
 private:
     glm::mat4 Perspective(float fovY, float aspect, float zNear, float zFar);
     glm::mat4 LookAt(glm::vec3 eye, glm::vec3 target, glm::vec3 up);
+    glm::mat4 Inverse(glm::mat4 m);
 };
