@@ -22,16 +22,18 @@
 
 struct RenderUniforms
 {
-    glm::vec2 screenSize;
-    glm::vec2 texelSize;
-    float sphereSize;
     glm::mat4 invProjectionMatrix;
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
     glm::mat4 invViewMatrix;
+    glm::vec2 screenSize;
+    glm::vec2 texelSize;
+    float sphereSize;
 
     float _padding[3];
 };
+
+static_assert(sizeof(RenderUniforms) % 16 == 0);
 
 struct PosVel
 {
@@ -43,6 +45,8 @@ struct PosVel
     PosVel() : position(glm::vec3(0.0f)), v(glm::vec3(0.0f)) {};
     PosVel(glm::vec3 pos, glm::vec3 vel) : position(pos), v(vel) {};
 };
+
+static_assert(sizeof(PosVel) % 16 == 0);
 
 class Application
 {

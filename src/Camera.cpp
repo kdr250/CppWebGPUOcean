@@ -33,7 +33,7 @@ void Camera::Reset(RenderUniforms& renderUniforms,
 
     auto windowSize = renderUniforms.screenSize;
     float aspect    = windowSize.x / windowSize.y;
-    auto projection = glm::perspectiveLH(this->fov, aspect, 0.1f, 1000.0f);
+    auto projection = Perspective(this->fov, aspect, 0.1f, 1000.0f);
 
     renderUniforms.projectionMatrix    = projection;
     renderUniforms.invProjectionMatrix = glm::inverse(projection);
@@ -57,8 +57,68 @@ void Camera::RecalculateView(RenderUniforms& renderUniforms)
     std::cout << "target = { " << target.x << ", " << target.y << ", " << target.z << " }"
               << std::endl;
 
-    auto view = glm::lookAtLH(cameraPosition, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
+    auto view = LookAt(cameraPosition, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
 
     renderUniforms.viewMatrix    = view;
     renderUniforms.invViewMatrix = glm::inverse(view);
+}
+
+glm::mat4 Camera::Perspective(float fovY, float aspect, float zNear, float zFar)
+{
+    glm::mat4 newDst(1.0f);
+
+    float f = std::tan(glm::pi<float>() * 0.5f - 0.5f * fovY);
+
+    newDst[0][0] = f / aspect;
+    newDst[0][1] = 0;
+    newDst[0][2] = 0;
+    newDst[0][3] = 0;
+
+    newDst[1][0] = 0;
+    newDst[1][1] = f;
+    newDst[1][2] = 0;
+    newDst[1][3] = 0;
+
+    newDst[2][0] = 0;
+    newDst[2][1] = 0;
+    newDst[2][3] = -1;
+
+    newDst[3][0] = 0;
+    newDst[3][1] = 0;
+    newDst[3][2] = 0;
+
+    float rangInv = 1.0f / (zNear - zFar);
+    newDst[2][2]  = zFar * rangInv;
+    newDst[3][3]  = zFar * zNear * rangInv;
+
+    return newDst;
+}
+
+glm::mat4 Camera::LookAt(glm::vec3 eye, glm::vec3 target, glm::vec3 up)
+{
+    glm::mat4 newDst(1.0f);
+
+    glm::vec3 zAxis = glm::normalize(eye - target);
+    glm::vec3 xAxis = glm::normalize(glm::cross(up, zAxis));
+    glm::vec3 yAxis = glm::normalize(glm::cross(zAxis, xAxis));
+
+    newDst[0][0] = xAxis[0];
+    newDst[0][1] = yAxis[0];
+    newDst[0][2] = zAxis[0];
+    newDst[0][3] = 0;
+    newDst[1][0] = xAxis[1];
+    newDst[1][1] = yAxis[1];
+    newDst[1][2] = zAxis[1];
+    newDst[1][3] = 0;
+    newDst[2][0] = xAxis[2];
+    newDst[2][1] = yAxis[2];
+    newDst[2][2] = zAxis[2];
+    newDst[2][3] = 0;
+
+    newDst[3][0] = -(xAxis[0] * eye[0] + xAxis[1] * eye[1] + xAxis[2] * eye[2]);
+    newDst[3][1] = -(yAxis[0] * eye[0] + yAxis[1] * eye[1] + yAxis[2] * eye[2]);
+    newDst[3][2] = -(zAxis[0] * eye[0] + zAxis[1] * eye[1] + zAxis[2] * eye[2]);
+    newDst[3][3] = 1;
+
+    return newDst;
 }

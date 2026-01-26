@@ -497,14 +497,14 @@ void Application::InitializeParticles()
         std::cout << "Read " << numFloats << " floats." << std::endl;
     }
 
-    int count = 0;
-    for (int i = 0; i < 20000 * 8; i += 8)
-    {
-        std::cout << count << " pos { " << buffer[i] << ", " << buffer[i + 1] << ", "
-                  << buffer[i + 2] << " }, vel = { " << buffer[i + 3] << ", " << buffer[i + 4]
-                  << ", " << buffer[i + 5] << " }" << std::endl;
-        count++;
-    }
+    // int count = 0;
+    // for (int i = 0; i < 20000 * 8; i += 8)
+    // {
+    //     std::cout << count << " pos { " << buffer[i] << ", " << buffer[i + 1] << ", "
+    //               << buffer[i + 2] << " }, vel = { " << buffer[i + 3] << ", " << buffer[i + 4]
+    //               << ", " << buffer[i + 5] << " }" << std::endl;
+    //     count++;
+    // }
 
     mQueue.WriteBuffer(mPosvelBuffer, 0, buffer.data(), size);
 }
