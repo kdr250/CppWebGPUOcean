@@ -159,10 +159,8 @@ bool Application::Initialize()
     float radius   = 0.04f;
     float diameter = 2.0f * radius;
 
-    mRenderUniforms.sphereSize = diameter;  // FIXME
-
-    // mSPHSimulator =
-    //     std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
+    mSPHSimulator =
+        std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
 
     mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
                                                      mRenderUniforms.screenSize,
@@ -174,12 +172,12 @@ bool Application::Initialize()
 
     mCamera = std::make_unique<Camera>();
 
-    // mSPHSimulator->Reset(20000, glm::vec3(1.0f, 2.0f, 1.0f), mRenderUniforms);
+    mSPHSimulator->Reset(20000, glm::vec3(1.0f, 2.0f, 1.0f), mRenderUniforms);
     mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
-    InitializeParticles();
+    // InitializeParticles();
 
     return true;
 }
@@ -286,10 +284,9 @@ void Application::GenerateOutput()
     };
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
-    // mSPHSimulator->Compute(commandEncoder);
+    mSPHSimulator->Compute(commandEncoder);
     commandEncoder.CopyBufferToBuffer(mPosvelBuffer, 0, mMapBuffer, 0, mPosvelBuffer.GetSize());
-    // mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles(), true);
-    mFluidRenderer->Draw(commandEncoder, targetView, 20000, false);
+    mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles(), false);
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {
