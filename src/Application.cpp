@@ -289,7 +289,7 @@ void Application::GenerateOutput()
     // mSPHSimulator->Compute(commandEncoder);
     commandEncoder.CopyBufferToBuffer(mPosvelBuffer, 0, mMapBuffer, 0, mPosvelBuffer.GetSize());
     // mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles(), true);
-    mFluidRenderer->Draw(commandEncoder, targetView, 20000, true);
+    mFluidRenderer->Draw(commandEncoder, targetView, 20000, false);
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {

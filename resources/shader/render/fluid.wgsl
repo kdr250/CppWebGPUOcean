@@ -5,13 +5,13 @@
 @group(0) @binding(4) var envmap_texture: texture_cube<f32>;
 
 struct RenderUniforms {
-    screen_size: vec2f,
-    texel_size: vec2f, 
-    sphere_size: f32, 
     inv_projection_matrix: mat4x4f, 
     projection_matrix: mat4x4f, 
     view_matrix: mat4x4f, 
     inv_view_matrix: mat4x4f, 
+    screen_size: vec2f,
+    texel_size: vec2f, 
+    sphere_size: f32, 
 }
 
 struct FragmentInput {
