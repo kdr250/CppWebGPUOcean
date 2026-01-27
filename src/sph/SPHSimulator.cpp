@@ -245,7 +245,7 @@ void SPHSimulator::ComputeGridClear(wgpu::ComputePassEncoder& computePass)
 {
     computePass.SetBindGroup(0, mGridClearBindGroup, 0, nullptr);
     computePass.SetPipeline(mGridClearPipeline);
-    computePass.DispatchWorkgroups(std::ceil((mGridCount + 1) / 64));
+    computePass.DispatchWorkgroups(std::ceil((mGridCount + 1) / 64.0f));
 }
 
 void SPHSimulator::InitializeGridBuildPipeline()
@@ -334,7 +334,7 @@ void SPHSimulator::InitializeGridBuildBindGroups(wgpu::Buffer particleBuffer)
     bindings[3].binding = 3;
     bindings[3].buffer  = mEnvironmentBuffer;
     bindings[3].offset  = 0;
-    bindings[3].size    = mEnvironmentBuffer.GetSize();
+    bindings[3].size    = sizeof(Environment);
 
     bindings[4].binding = 4;
     bindings[4].buffer  = mSPHParamsBuffer;

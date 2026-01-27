@@ -17,8 +17,8 @@ static constexpr int SPH_PARTICLE_STRUCTURE_SIZE = 64;
 struct Environment
 {
     glm::ivec3 grids;
-    float cellSize;
     glm::vec3 half;
+    float cellSize;
     float offset;
 };
 

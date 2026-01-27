@@ -8,9 +8,9 @@ struct Particle {
 
 struct Environment {
     grids: vec3i,
-    cellSize: f32, 
     half: vec3f,
-    offset: f32, 
+    cellSize: f32,
+    offset: f32,
 }
 
 struct SPHParams {
