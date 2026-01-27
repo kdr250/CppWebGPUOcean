@@ -30,8 +30,8 @@ struct SPHParams {
 
 struct Environment {
     grids: vec3i,
+    cellSize: f32, 
     half: vec3f,
-    cellSize: f32,
     offset: f32, 
 }
 

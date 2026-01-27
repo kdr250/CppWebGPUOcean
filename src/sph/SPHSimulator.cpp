@@ -334,7 +334,7 @@ void SPHSimulator::InitializeGridBuildBindGroups(wgpu::Buffer particleBuffer)
     bindings[3].binding = 3;
     bindings[3].buffer  = mEnvironmentBuffer;
     bindings[3].offset  = 0;
-    bindings[3].size    = sizeof(Environment);
+    bindings[3].size    = mEnvironmentBuffer.GetSize();
 
     bindings[4].binding = 4;
     bindings[4].buffer  = mSPHParamsBuffer;
