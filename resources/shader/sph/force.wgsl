@@ -7,9 +7,13 @@ struct Particle {
 }
 
 struct Environment {
-    grids: vec3i,
-    half: vec3f,
-    cellSize: f32,
+    xGrids: i32,
+    yGrids: i32, 
+    zGrids: i32, 
+    cellSize: f32, 
+    xHalf: f32, 
+    yHalf: f32, 
+    zHalf: f32, 
     offset: f32, 
 }
 
@@ -35,13 +39,13 @@ struct SPHParams {
 @group(0) @binding(4) var<uniform> params: SPHParams;
 
 fn densityKernelGradient(r: f32) -> f32 {
-    let scale: f32 = 45.0 / (3.1415926535 * params.kernelRadiusPow6);
+    let scale: f32 = 45.0 / (3.1415926535 * params.kernelRadiusPow6); // pow 使うと遅いかも
     let d = params.kernelRadius - r;
     return scale * d * d;
 }
 
 fn nearDensityKernelGradient(r: f32) -> f32 {
-    let scale: f32 = 45.0 / (3.1415926535 * params.kernelRadiusPow5);
+    let scale: f32 = 45.0 / (3.1415926535 * params.kernelRadiusPow5); // 直す
     let a = params.kernelRadiusPow9;
     let d = params.kernelRadius - r;
     return scale * d * d;
@@ -55,14 +59,14 @@ fn viscosityKernelLaplacian(r: f32) -> f32 {
 }
 
 fn cellPosition(v: vec3f) -> vec3i {
-    let xi = i32(floor((v.x + env.half.x + env.offset) / env.cellSize));
-    let yi = i32(floor((v.y + env.half.y + env.offset) / env.cellSize));
-    let zi = i32(floor((v.z + env.half.z + env.offset) / env.cellSize));
+    let xi = i32(floor((v.x + env.xHalf + env.offset) / env.cellSize));
+    let yi = i32(floor((v.y + env.yHalf + env.offset) / env.cellSize));
+    let zi = i32(floor((v.z + env.zHalf + env.offset) / env.cellSize));
     return vec3i(xi, yi, zi);
 }
 
 fn cellNumberFromId(xi: i32, yi: i32, zi: i32) -> i32 {
-    return xi + yi * env.grids.x + zi * env.grids.x * env.grids.y;
+    return xi + yi * env.xGrids + zi * env.xGrids * env.yGrids;
 }
 
 @compute @workgroup_size(64)
@@ -76,15 +80,15 @@ fn computeForce(@builtin(global_invocation_id) id: vec3<u32>) {
         var fVisc = vec3(0.0, 0.0, 0.0);
 
         let v = cellPosition(pos_i);
-        if (v.x < env.grids.x && 0 <= v.x && 
-            v.y < env.grids.y && 0 <= v.y && 
-            v.z < env.grids.z && 0 <= v.z) 
+        if (v.x < env.xGrids && 0 <= v.x && 
+            v.y < env.yGrids && 0 <= v.y && 
+            v.z < env.zGrids && 0 <= v.z) 
         {
-            if (v.x < env.grids.x && v.y < env.grids.y && v.z < env.grids.z) {
-                for (var dz = max(-1, -v.z); dz <= min(1, env.grids.z - v.z - 1); dz++) {
-                    for (var dy = max(-1, -v.y); dy <= min(1, env.grids.y - v.y - 1); dy++) {
+            if (v.x < env.xGrids && v.y < env.yGrids && v.z < env.zGrids) {
+                for (var dz = max(-1, -v.z); dz <= min(1, env.zGrids - v.z - 1); dz++) {
+                    for (var dy = max(-1, -v.y); dy <= min(1, env.yGrids - v.y - 1); dy++) {
                         let dxMin = max(-1, -v.x);
-                        let dxMax = min(1, env.grids.x - v.x - 1);
+                        let dxMax = min(1, env.xGrids - v.x - 1);
                         let startCellNum = cellNumberFromId(v.x + dxMin, v.y + dy, v.z + dz);
                         let endCellNum = cellNumberFromId(v.x + dxMax, v.y + dy, v.z + dz);
                         let start = prefixSum[startCellNum];

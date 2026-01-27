@@ -16,13 +16,14 @@ static constexpr int SPH_PARTICLE_STRUCTURE_SIZE = 64;
 
 struct Environment
 {
-    glm::ivec3 grids;
-    float _padding1;
-    glm::vec3 half;
-    float _padding2;
+    int xGrids;
+    int yGrids;
+    int zGrids;
     float cellSize;
+    float xHalf;
+    float yHalf;
+    float zHalf;
     float offset;
-    float _padding3[2];
 };
 
 struct SPHParams

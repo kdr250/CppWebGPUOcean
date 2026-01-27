@@ -29,18 +29,22 @@ struct SPHParams {
 @group(0) @binding(5) var<uniform> params : SPHParams;
 
 struct Environment {
-    grids: vec3i,
-    half: vec3f,
-    cellSize: f32,
-    offset: f32, 
+    xGrids: i32, 
+    yGrids: i32, 
+    zGrids: i32, 
+    cellSize: f32, 
+    xHalf: f32, 
+    yHalf: f32, 
+    zHalf: f32, 
+    offset: f32,
 }
 
 fn cellId(position: vec3f) -> i32 {
-    let xi: i32 = i32(floor((position.x + env.half.x + env.offset) / env.cellSize));
-    let yi: i32 = i32(floor((position.y + env.half.y + env.offset) / env.cellSize));
-    let zi: i32 = i32(floor((position.z + env.half.z + env.offset) / env.cellSize));
+    let xi: i32 = i32(floor((position.x + env.xHalf + env.offset) / env.cellSize));
+    let yi: i32 = i32(floor((position.y + env.yHalf + env.offset) / env.cellSize));
+    let zi: i32 = i32(floor((position.z + env.zHalf + env.offset) / env.cellSize));
 
-    return xi + yi * env.grids.x + zi * env.grids.x * env.grids.y;
+    return xi + yi * env.xGrids + zi * env.xGrids * env.yGrids;
 }
 
 @compute
@@ -49,7 +53,7 @@ fn main(@builtin(global_invocation_id) id : vec3<u32>) {
     if (id.x < params.n) {
         let cellId: i32 = cellId(sourceParticles[id.x].position);
         // TODO : 変える
-        if (cellId < env.grids.x * env.grids.y * env.grids.z) {
+        if (cellId < env.xGrids * env.yGrids * env.zGrids) {
             let targetIndex = cellParticleCount[cellId + 1] - particleCellOffset[id.x] - 1;
             if (targetIndex < params.n) {
                 targetParticles[targetIndex] = sourceParticles[id.x];

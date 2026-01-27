@@ -20,12 +20,11 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     glm::vec3 halfMax(2.0f, 2.0f, 2.0f);
     glm::vec3 length = halfMax * 2.0f;
     float sentinel   = 4.0f * cellSize;
-    glm::vec3 grids(0.0f);
-    grids.x      = std::ceil((length.x + sentinel) / cellSize);
-    grids.y      = std::ceil((length.y + sentinel) / cellSize);
-    grids.z      = std::ceil((length.z + sentinel) / cellSize);
-    mGridCount   = (int)(grids.x * grids.y * grids.z);
-    float offset = sentinel / 2.0f;
+    float gridX      = std::ceil((length.x + sentinel) / cellSize);
+    float gridY      = std::ceil((length.y + sentinel) / cellSize);
+    float gridZ      = std::ceil((length.z + sentinel) / cellSize);
+    mGridCount       = (int)(gridX * gridY * gridZ);
+    float offset     = sentinel / 2.0f;
 
     float stiffness     = 20.0f;
     float nearStiffness = 1.0f;
@@ -35,9 +34,13 @@ SPHSimulator::SPHSimulator(wgpu::Device device,
     float dt            = 0.006f;
 
     Environment environment {
-        .grids    = grids,
+        .xGrids   = (int)gridX,
+        .yGrids   = (int)gridY,
+        .zGrids   = (int)gridZ,
         .cellSize = cellSize,
-        .half     = halfMax,
+        .xHalf    = halfMax.x,
+        .yHalf    = halfMax.y,
+        .zHalf    = halfMax.z,
         .offset   = offset,
     };
 
