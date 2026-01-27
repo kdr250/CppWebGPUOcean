@@ -27,6 +27,7 @@ endif()
 find_package(Dawn REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
@@ -37,6 +38,7 @@ add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
 
 add_subdirectory(external/glfw3webgpu glfw3webgpu)
 add_subdirectory(external/radixsort radixsort)
+add_subdirectory(external/imguiwgpu imguiwgpu)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
@@ -54,8 +56,10 @@ if (EMSCRIPTEN)
         main PRIVATE
         dawn::webgpu_dawn
         glm::glm
+        imgui::imgui
         glfw3webgpu
         radixsort
+        imguiwgpu
     )
 
     target_include_directories(
@@ -74,8 +78,10 @@ else()
         glfw
         dawn::webgpu_dawn
         glm::glm
+        imgui::imgui
         glfw3webgpu
         radixsort
+        imguiwgpu
     )
 
     target_include_directories(
