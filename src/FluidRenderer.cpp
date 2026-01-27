@@ -1,7 +1,6 @@
 #include "FluidRenderer.h"
 
 #include <glm/glm.hpp>
-#include <iostream>
 
 #include "Application.h"
 #include "WebGPUUtils.h"
@@ -243,9 +242,6 @@ void FluidRenderer::CreateDepthFilterUniform(float depthThreshold,
                                              float projectedParticleConstant,
                                              float maxFilterSize)
 {
-    std::cout << "depthThreshold = " << depthThreshold << std::endl;
-    std::cout << "projectedParticleConstant = " << projectedParticleConstant << std::endl;
-    std::cout << "maxFilterSize = " << maxFilterSize << std::endl;
     // create buffer
     wgpu::BufferDescriptor bufferDesc {};
     bufferDesc.label            = WebGPUUtils::GenerateString("filter X unioform buffer");

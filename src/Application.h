@@ -78,9 +78,6 @@ private:
 
     bool ShouldClose();
 
-    // FIXME
-    void InitializeParticles();
-
 private:
     GLFWwindow* mWindow;
     wgpu::Instance mInstance           = nullptr;
@@ -95,7 +92,6 @@ private:
     wgpu::Buffer mRenderUniformBuffer;
     wgpu::Buffer mParticleBuffer;
     wgpu::Buffer mPosvelBuffer;
-    wgpu::Buffer mMapBuffer;  // FIXME
 
     RenderUniforms mRenderUniforms;
 

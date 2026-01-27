@@ -150,9 +150,8 @@ bool Application::Initialize()
     mRenderUniforms.screenSize = windowSize;
     mRenderUniforms.texelSize  = glm::vec2(1.0f / windowSize.x, 1.0 / windowSize.y);
 
-    // FIXME
-    float fov = 45.0f * glm::pi<float>() / 180.0f;
-    std::cout << "fov = " << fov << std::endl;
+    // Setup variables
+    float fov          = 45.0f * glm::pi<float>() / 180.0f;
     float initDistance = 3.0f;
     glm::vec3 target(0.0f, -1.9f, 0.0f);
     float zoomRate = 0.05f;
@@ -230,21 +229,12 @@ void Application::InitializeBuffers()
     mParticleBuffer = mDevice.CreateBuffer(&bufferDesc);
 
     // position storage buffer
-    bufferDesc.label = WebGPUUtils::GenerateString("position storage buffer");
-    bufferDesc.size  = sizeof(PosVel) * NUM_PARTICLES_MAX;
-    bufferDesc.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage
-                       | wgpu::BufferUsage::CopySrc;  // FIXME
+    bufferDesc.label            = WebGPUUtils::GenerateString("position storage buffer");
+    bufferDesc.size             = sizeof(PosVel) * NUM_PARTICLES_MAX;
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
     bufferDesc.mappedAtCreation = false;
 
     mPosvelBuffer = mDevice.CreateBuffer(&bufferDesc);
-
-    // FIXME: Debug
-    bufferDesc.label            = WebGPUUtils::GenerateString("debug map buffer");
-    bufferDesc.size             = sizeof(PosVel) * NUM_PARTICLES_MAX;
-    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::MapRead;
-    bufferDesc.mappedAtCreation = false;
-
-    mMapBuffer = mDevice.CreateBuffer(&bufferDesc);
 }
 
 void Application::Loop()
@@ -285,7 +275,6 @@ void Application::GenerateOutput()
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
     mSPHSimulator->Compute(commandEncoder);
-    commandEncoder.CopyBufferToBuffer(mPosvelBuffer, 0, mMapBuffer, 0, mPosvelBuffer.GetSize());
     mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles(), false);
 
     // Finally encode and submit the render pass
@@ -296,43 +285,6 @@ void Application::GenerateOutput()
     wgpu::CommandBuffer command = commandEncoder.Finish(&cmdBufferDescriptor);
 
     mQueue.Submit(1, &command);
-
-#ifndef __EMSCRIPTEN__
-    // Print output
-    bool done   = false;
-    auto handle = mMapBuffer.MapAsync(
-        wgpu::MapMode::Read,
-        0,
-        mMapBuffer.GetSize(),
-        wgpu::CallbackMode::AllowProcessEvents,
-        [&](wgpu::MapAsyncStatus status, wgpu::StringView message)
-        {
-            if (status == wgpu::MapAsyncStatus::Success)
-            {
-                const float* buffer =
-                    (const float*)mMapBuffer.GetConstMappedRange(0, mMapBuffer.GetSize());
-                int count = 0;
-                for (int i = 0; i < 20000 * 8; i += 8)
-                {
-                    // std::cout << count << " pos { " << buffer[i] << ", " << buffer[i + 1] << ", "
-                    //           << buffer[i + 2] << " }, vel = { " << buffer[i + 3] << ", "
-                    //           << buffer[i + 4] << ", " << buffer[i + 5] << " }" << std::endl;
-                    // count++;
-                }
-                mMapBuffer.Unmap();
-            }
-            else
-            {
-                std::cout << "Not Success!" << std::endl;
-            }
-            done = true;
-        });
-
-    while (!done)
-    {
-        mInstance.ProcessEvents();
-    }
-#endif
 
 #ifndef __EMSCRIPTEN__
     mSurface.Present();
@@ -471,37 +423,4 @@ void Application::OnKeyAction(int key, int scancode, int action, int mods)
 bool Application::ShouldClose()
 {
     return glfwWindowShouldClose(mWindow) == GLFW_TRUE;
-}
-
-void Application::InitializeParticles()
-{
-    std::ifstream binary("resources/binary/output.bin", std::ios::in | std::ios::binary);
-    if (!binary.is_open())
-    {
-        std::cout << "can't open binary file!" << std::endl;
-        return;
-    }
-
-    binary.seekg(0, std::ios::end);
-    long long int size = binary.tellg();
-    binary.seekg(0, std::ios::beg);
-
-    size_t numFloats = size / sizeof(float);
-    std::vector<float> buffer(numFloats);
-
-    if (binary.read(reinterpret_cast<char*>(buffer.data()), size))
-    {
-        std::cout << "Read " << numFloats << " floats." << std::endl;
-    }
-
-    // int count = 0;
-    // for (int i = 0; i < 20000 * 8; i += 8)
-    // {
-    //     std::cout << count << " pos { " << buffer[i] << ", " << buffer[i + 1] << ", "
-    //               << buffer[i + 2] << " }, vel = { " << buffer[i + 3] << ", " << buffer[i + 4]
-    //               << ", " << buffer[i + 5] << " }" << std::endl;
-    //     count++;
-    // }
-
-    mQueue.WriteBuffer(mPosvelBuffer, 0, buffer.data(), size);
 }

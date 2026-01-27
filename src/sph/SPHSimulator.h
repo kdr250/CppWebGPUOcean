@@ -115,8 +115,6 @@ private:
 
     float Random();
 
-    void CalculateGridCount();
-
 private:
     wgpu::Device mDevice;
 

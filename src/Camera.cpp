@@ -1,14 +1,10 @@
 #include "Camera.h"
 #include <glm/gtc/constants.hpp>
 #include <glm/ext.hpp>
-#include <iostream>
 
 #include "Application.h"
 
-Camera::Camera()
-{
-    // TODO
-}
+Camera::Camera() {}
 
 void Camera::Reset(RenderUniforms& renderUniforms,
                    float initDistance,
@@ -51,11 +47,6 @@ void Camera::RecalculateView(RenderUniforms& renderUniforms)
 
     glm::vec4 position       = mat * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec3 cameraPosition = glm::vec3(position.x, position.y, position.z);
-
-    std::cout << "cameraPosition = { " << cameraPosition.x << ", " << cameraPosition.y << ", "
-              << cameraPosition.z << " }" << std::endl;
-    std::cout << "target = { " << target.x << ", " << target.y << ", " << target.z << " }"
-              << std::endl;
 
     auto view = LookAt(cameraPosition, this->target, glm::vec3(0.0f, 1.0f, 0.0f));
 
