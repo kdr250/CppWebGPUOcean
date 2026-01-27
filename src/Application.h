@@ -38,9 +38,9 @@ static_assert(sizeof(RenderUniforms) % 16 == 0);
 struct PosVel
 {
     glm::vec3 position;
+    float _padding;
     glm::vec3 v;
-
-    float _padding[2];
+    float _padding2;
 
     PosVel() : position(glm::vec3(0.0f)), v(glm::vec3(0.0f)) {};
     PosVel(glm::vec3 pos, glm::vec3 vel) : position(pos), v(vel) {};
