@@ -30,8 +30,7 @@ public:
 
     void Draw(wgpu::CommandEncoder& commandEncoder,
               wgpu::TextureView targetView,
-              uint32_t numParticles,
-              bool renderSphere);
+              uint32_t numParticles);
 
 private:
     // Fluid
@@ -72,6 +71,9 @@ private:
                     uint32_t numParticles);
 
     void CreateTextures(const glm::vec2& textureSize);
+
+    // GUI
+    void UpdateGUI(wgpu::RenderPassEncoder& renderPass);
 
 private:
     wgpu::Device mDevice;
@@ -122,4 +124,6 @@ private:
     wgpu::TextureView mDepthTestTextureView;
     wgpu::TextureView mThicknessMapTextureView;
     wgpu::TextureView mTmpThicknessMapTextureView;
+
+    bool mDrawSpheres = false;
 };

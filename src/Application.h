@@ -76,6 +76,10 @@ private:
     void OnScroll(double xoffset, double yoffset);
     void OnKeyAction(int key, int scancode, int action, int mods);
 
+    // GUI
+    void InitializeGUI();
+    void TerminateGUI();
+
     bool ShouldClose();
 
 private:

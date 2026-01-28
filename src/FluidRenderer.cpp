@@ -1,5 +1,8 @@
 #include "FluidRenderer.h"
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_wgpu.h>
 #include <glm/glm.hpp>
 
 #include "Application.h"
@@ -51,10 +54,9 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
 
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
                          wgpu::TextureView targetView,
-                         uint32_t numParticles,
-                         bool renderSphere)
+                         uint32_t numParticles)
 {
-    if (renderSphere)
+    if (mDrawSpheres)
     {
         DrawSphere(commandEncoder, targetView, numParticles);
         return;
@@ -142,6 +144,13 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
             },
     };
 
+    wgpu::DepthStencilState depthStencilState {
+        .depthWriteEnabled = true,
+        .depthCompare      = wgpu::CompareFunction::Less,
+        .format            = wgpu::TextureFormat::Depth32Float,
+    };
+    renderPipelineDesc.depthStencil = &depthStencilState;
+
     wgpu::ColorTargetState colorTarget {
         .format = presentationFormat,
     };
@@ -217,13 +226,20 @@ void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::Textur
         .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
     };
 
+    wgpu::RenderPassDepthStencilAttachment depthStencilAttachment {
+        .view            = mDepthTestTextureView,
+        .depthClearValue = 1.0f,
+        .depthLoadOp     = wgpu::LoadOp::Clear,
+        .depthStoreOp    = wgpu::StoreOp::Store,
+    };
+
     // Create the render pass that clears the screen with our color
     wgpu::RenderPassDescriptor renderPassDesc {
         .nextInChain            = nullptr,
         .label                  = WebGPUUtils::GenerateString("fluid render Pass"),
         .colorAttachmentCount   = 1,
         .colorAttachments       = &renderPassColorAttachment,
-        .depthStencilAttachment = nullptr,
+        .depthStencilAttachment = &depthStencilAttachment,
         .timestampWrites        = nullptr,
     };
 
@@ -234,6 +250,8 @@ void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::Textur
     renderPass.SetPipeline(mFluidPipeline);
     renderPass.SetBindGroup(0, mFluidBindGroup, 0, nullptr);
     renderPass.Draw(6, 1, 0, 0);
+
+    UpdateGUI(renderPass);
 
     renderPass.End();
 }
@@ -934,6 +952,8 @@ void FluidRenderer::DrawSphere(wgpu::CommandEncoder& commandEncoder,
     renderPass.SetBindGroup(0, mSphereBindGroup, 0, nullptr);
     renderPass.Draw(6, numParticles, 0, 0);
 
+    UpdateGUI(renderPass);
+
     renderPass.End();
 }
 
@@ -986,6 +1006,26 @@ void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
 
     wgpu::Texture temporaryThicknessMapTexture = mDevice.CreateTexture(&textureDesc);
     mTmpThicknessMapTextureView                = temporaryThicknessMapTexture.CreateView();
+}
+
+void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass)
+{
+    // Start the Dear ImGui frame
+    ImGui_ImplWGPU_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // Build UI
+    {
+        ImGui::Begin("Fluid Simulation");
+        ImGui::Checkbox("Draw Particles", &mDrawSpheres);
+        ImGui::End();
+    }
+
+    // Draw UI
+    ImGui::EndFrame();
+    ImGui::Render();
+    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass.Get());
 }
 
 void FluidRenderer::InitializeDepthMapPipeline()

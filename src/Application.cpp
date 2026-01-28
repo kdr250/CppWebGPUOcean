@@ -1,5 +1,9 @@
 #include "Application.h"
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_wgpu.h>
+
 #include <glfw3webgpu.h>
 #include <iostream>
 #include <fstream>
@@ -176,7 +180,7 @@ bool Application::Initialize()
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
-    // InitializeParticles();
+    InitializeGUI();
 
     return true;
 }
@@ -205,6 +209,8 @@ void Application::RunLoop()
 
 void Application::Shutdown()
 {
+    TerminateGUI();
+
     glfwDestroyWindow(mWindow);
     glfwTerminate();
 }
@@ -275,7 +281,7 @@ void Application::GenerateOutput()
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
     mSPHSimulator->Compute(commandEncoder);
-    mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles(), false);
+    mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles());
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {
@@ -418,6 +424,34 @@ void Application::OnKeyAction(int key, int scancode, int action, int mods)
             mCamera->currentDistance = mCamera->maxDistance;
         mCamera->RecalculateView(mRenderUniforms);
     }
+}
+
+void Application::InitializeGUI()
+{
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::GetIO();
+
+    // Get the surface texture
+    wgpu::SurfaceTexture surfaceTexture;
+    mSurface.GetCurrentTexture(&surfaceTexture);
+    wgpu::TextureFormat format = surfaceTexture.texture.GetFormat();
+
+    // Setup platform/Renderer backends
+    ImGui_ImplGlfw_InitForOther(mWindow, true);
+    ImGui_ImplWGPU_InitInfo initInfo;
+    initInfo.Device             = mDevice.Get();
+    initInfo.DepthStencilFormat = WGPUTextureFormat::WGPUTextureFormat_Depth32Float;
+    initInfo.RenderTargetFormat = (WGPUTextureFormat)format;
+    initInfo.NumFramesInFlight  = 3;
+    ImGui_ImplWGPU_Init(&initInfo);
+}
+
+void Application::TerminateGUI()
+{
+    ImGui_ImplWGPU_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
 }
 
 bool Application::ShouldClose()
