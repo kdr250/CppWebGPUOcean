@@ -1025,7 +1025,11 @@ void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass)
     // Draw UI
     ImGui::EndFrame();
     ImGui::Render();
-    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass.Get());
+
+    auto drawData              = ImGui::GetDrawData();
+    drawData->FramebufferScale = ImVec2(1.0f, 1.0f);
+
+    ImGui_ImplWGPU_RenderDrawData(drawData, renderPass.Get());
 }
 
 void FluidRenderer::InitializeDepthMapPipeline()
