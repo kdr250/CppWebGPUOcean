@@ -126,6 +126,12 @@ void SPHSimulator::Reset(int numParticles,
     queue.WriteBuffer(mRealBoxSizeBuffer, 0, glm::value_ptr(initHalfBoxSize), sizeof(glm::vec3));
 }
 
+void SPHSimulator::ChangeBoxSize(const glm::vec3& realBoxSize)
+{
+    wgpu::Queue queue = mDevice.GetQueue();
+    queue.WriteBuffer(mRealBoxSizeBuffer, 0, glm::value_ptr(realBoxSize), sizeof(glm::vec3));
+}
+
 void SPHSimulator::CreateBuffers()
 {
     wgpu::BufferDescriptor bufferDesc {};

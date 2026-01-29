@@ -67,10 +67,7 @@ public:
 
     void Reset(int numParticles, const glm::vec3& initHalfBoxSize, RenderUniforms& renderUniforms);
 
-    unsigned int GetNumParticles() const
-    {
-        return mNumParticles;
-    }
+    void ChangeBoxSize(const glm::vec3& realBoxSize);
 
 private:
     void CreateBuffers();
