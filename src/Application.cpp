@@ -369,6 +369,12 @@ void Application::OnMouseMove(double xpos, double ypos)
     if (!mCamera->isDragging)
         return;
 
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse)
+    {
+        return;
+    }
+
     float deltaX = mCamera->prevX - xpos;
     float deltaY = mCamera->prevY - ypos;
     mCamera->currentXTheta += mCamera->sensitivity * deltaX;
@@ -384,6 +390,12 @@ void Application::OnMouseMove(double xpos, double ypos)
 
 void Application::OnMouseButton(int button, int action, int mods)
 {
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse)
+    {
+        return;
+    }
+
     if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
         switch (action)
