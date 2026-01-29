@@ -176,7 +176,7 @@ bool Application::Initialize()
     mCamera = std::make_unique<Camera>();
 
     mSPHSimulator->Reset(mSimulationVariables.numParticles,
-                         glm::vec3(1.0f, 2.0f, 1.0f),
+                         mSimulationVariables.initialBoxSize,
                          mRenderUniforms);
     mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
 
@@ -262,8 +262,15 @@ void Application::UpdateGame()
     if (mSimulationVariables.changed)
     {
         mSPHSimulator->Reset(mSimulationVariables.numParticles,
-                             glm::vec3(1.0f, 2.0f, 1.0f),
+                             mSimulationVariables.initialBoxSize,
                              mRenderUniforms);
+    }
+
+    if (mSimulationVariables.boxSizeChanged)
+    {
+        glm::vec3 realBoxSize = mSimulationVariables.initialBoxSize;
+        realBoxSize.z *= mSimulationVariables.boxWidthRatio;
+        mSPHSimulator->ChangeBoxSize(realBoxSize);
     }
 }
 

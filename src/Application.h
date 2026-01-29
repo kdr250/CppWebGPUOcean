@@ -53,6 +53,10 @@ struct SimulationVariables
     bool changed     = false;
     bool drawSpheres = false;
     int numParticles = 20000;
+
+    bool boxSizeChanged      = false;
+    float boxWidthRatio      = 1.0f;
+    glm::vec3 initialBoxSize = glm::vec3(1.0f, 2.0f, 1.0f);
 };
 
 class Application

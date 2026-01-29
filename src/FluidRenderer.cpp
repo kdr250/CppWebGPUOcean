@@ -1033,7 +1033,14 @@ void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass,
         changed = ImGui::RadioButton("30,000", &simulationVariables.numParticles, 30000) || changed;
         changed = ImGui::RadioButton("40,000", &simulationVariables.numParticles, 40000) || changed;
 
-        simulationVariables.changed = changed;
+        ImGui::Separator();
+
+        bool boxChanged = false;
+        boxChanged = ImGui::SliderFloat("Box width", &simulationVariables.boxWidthRatio, 0.5f, 1.0f)
+                     || boxChanged;
+
+        simulationVariables.changed        = changed;
+        simulationVariables.boxSizeChanged = boxChanged;
 
         ImGui::End();
     }
