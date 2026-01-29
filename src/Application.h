@@ -48,6 +48,13 @@ struct PosVel
 
 static_assert(sizeof(PosVel) % 16 == 0);
 
+struct SimulationVariables
+{
+    bool changed     = false;
+    bool drawSpheres = false;
+    int numParticles = 20000;
+};
+
 class Application
 {
 public:
@@ -100,4 +107,6 @@ private:
     RenderUniforms mRenderUniforms;
 
     std::unique_ptr<SPHSimulator> mSPHSimulator;
+
+    SimulationVariables mSimulationVariables;
 };

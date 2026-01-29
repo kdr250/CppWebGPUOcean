@@ -7,6 +7,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
+struct SimulationVariables;
+
 struct FilterUniform
 {
     glm::vec2 blurDir;
@@ -30,14 +32,16 @@ public:
 
     void Draw(wgpu::CommandEncoder& commandEncoder,
               wgpu::TextureView targetView,
-              uint32_t numParticles);
+              SimulationVariables& simulationVariables);
 
 private:
     // Fluid
     void InitializeFluidPipelines(wgpu::TextureFormat presentationFormat,
                                   wgpu::ShaderModule vertexModule);
     void InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer);
-    void DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView);
+    void DrawFluid(wgpu::CommandEncoder& commandEncoder,
+                   wgpu::TextureView targetView,
+                   SimulationVariables& simulationVariables);
 
     // Depth map
     void InitializeDepthMapPipeline();
@@ -68,12 +72,12 @@ private:
     void InitializeSphereBindGroups(wgpu::Buffer renderUniformBuffer, wgpu::Buffer posvelBuffer);
     void DrawSphere(wgpu::CommandEncoder& commandEncoder,
                     wgpu::TextureView targetView,
-                    uint32_t numParticles);
+                    SimulationVariables& simulationVariables);
 
     void CreateTextures(const glm::vec2& textureSize);
 
     // GUI
-    void UpdateGUI(wgpu::RenderPassEncoder& renderPass);
+    void UpdateGUI(wgpu::RenderPassEncoder& renderPass, SimulationVariables& simulationVariables);
 
 private:
     wgpu::Device mDevice;
@@ -124,6 +128,4 @@ private:
     wgpu::TextureView mDepthTestTextureView;
     wgpu::TextureView mThicknessMapTextureView;
     wgpu::TextureView mTmpThicknessMapTextureView;
-
-    bool mDrawSpheres = false;
 };

@@ -175,7 +175,9 @@ bool Application::Initialize()
 
     mCamera = std::make_unique<Camera>();
 
-    mSPHSimulator->Reset(20000, glm::vec3(1.0f, 2.0f, 1.0f), mRenderUniforms);
+    mSPHSimulator->Reset(mSimulationVariables.numParticles,
+                         glm::vec3(1.0f, 2.0f, 1.0f),
+                         mRenderUniforms);
     mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
@@ -257,7 +259,12 @@ void Application::ProcessInput()
 
 void Application::UpdateGame()
 {
-    // TODO
+    if (mSimulationVariables.changed)
+    {
+        mSPHSimulator->Reset(mSimulationVariables.numParticles,
+                             glm::vec3(1.0f, 2.0f, 1.0f),
+                             mRenderUniforms);
+    }
 }
 
 void Application::GenerateOutput()
@@ -281,7 +288,7 @@ void Application::GenerateOutput()
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
     mSPHSimulator->Compute(commandEncoder);
-    mFluidRenderer->Draw(commandEncoder, targetView, mSPHSimulator->GetNumParticles());
+    mFluidRenderer->Draw(commandEncoder, targetView, mSimulationVariables);
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {

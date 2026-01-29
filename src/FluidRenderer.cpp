@@ -54,19 +54,19 @@ FluidRenderer::FluidRenderer(wgpu::Device device,
 
 void FluidRenderer::Draw(wgpu::CommandEncoder& commandEncoder,
                          wgpu::TextureView targetView,
-                         uint32_t numParticles)
+                         SimulationVariables& simulationVariables)
 {
-    if (mDrawSpheres)
+    if (simulationVariables.drawSpheres)
     {
-        DrawSphere(commandEncoder, targetView, numParticles);
+        DrawSphere(commandEncoder, targetView, simulationVariables);
         return;
     }
 
-    DrawDepthMap(commandEncoder, numParticles);
+    DrawDepthMap(commandEncoder, simulationVariables.numParticles);
     DrawDepthFilter(commandEncoder);
-    DrawThicknessMap(commandEncoder, numParticles);
+    DrawThicknessMap(commandEncoder, simulationVariables.numParticles);
     DrawThicknessFilter(commandEncoder);
-    DrawFluid(commandEncoder, targetView);
+    DrawFluid(commandEncoder, targetView, simulationVariables);
 }
 
 void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFormat,
@@ -214,7 +214,9 @@ void FluidRenderer::InitializeFluidBindGroups(wgpu::Buffer renderUniformBuffer)
     mFluidBindGroup = mDevice.CreateBindGroup(&fluidBindGroupDesc);
 }
 
-void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::TextureView targetView)
+void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder,
+                              wgpu::TextureView targetView,
+                              SimulationVariables& simulationVariables)
 {
     // The attachment part of the render pass descriptor describes the target texture of the pass
     wgpu::RenderPassColorAttachment renderPassColorAttachment {
@@ -251,7 +253,7 @@ void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder, wgpu::Textur
     renderPass.SetBindGroup(0, mFluidBindGroup, 0, nullptr);
     renderPass.Draw(6, 1, 0, 0);
 
-    UpdateGUI(renderPass);
+    UpdateGUI(renderPass, simulationVariables);
 
     renderPass.End();
 }
@@ -915,7 +917,7 @@ void FluidRenderer::InitializeSphereBindGroups(wgpu::Buffer renderUniformBuffer,
 
 void FluidRenderer::DrawSphere(wgpu::CommandEncoder& commandEncoder,
                                wgpu::TextureView targetView,
-                               uint32_t numParticles)
+                               SimulationVariables& simulationVariables)
 {
     // The attachment part of the render pass descriptor describes the target texture of the pass
     wgpu::RenderPassColorAttachment renderPassColorAttachment {
@@ -950,9 +952,9 @@ void FluidRenderer::DrawSphere(wgpu::CommandEncoder& commandEncoder,
     // Select which render pipeline to use
     renderPass.SetPipeline(mSpherePipeline);
     renderPass.SetBindGroup(0, mSphereBindGroup, 0, nullptr);
-    renderPass.Draw(6, numParticles, 0, 0);
+    renderPass.Draw(6, simulationVariables.numParticles, 0, 0);
 
-    UpdateGUI(renderPass);
+    UpdateGUI(renderPass, simulationVariables);
 
     renderPass.End();
 }
@@ -1008,7 +1010,8 @@ void FluidRenderer::CreateTextures(const glm::vec2& textureSize)
     mTmpThicknessMapTextureView                = temporaryThicknessMapTexture.CreateView();
 }
 
-void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass)
+void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass,
+                              SimulationVariables& simulationVariables)
 {
     // Start the Dear ImGui frame
     ImGui_ImplWGPU_NewFrame();
@@ -1017,8 +1020,21 @@ void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass)
 
     // Build UI
     {
+        bool changed = false;
         ImGui::Begin("Fluid Simulation");
-        ImGui::Checkbox("Draw Particles", &mDrawSpheres);
+
+        changed = ImGui::Checkbox("Draw Particles", &simulationVariables.drawSpheres) || changed;
+
+        ImGui::Separator();
+
+        ImGui::Text("Number of Particles");
+        changed = ImGui::RadioButton("10,000", &simulationVariables.numParticles, 10000) || changed;
+        changed = ImGui::RadioButton("20,000", &simulationVariables.numParticles, 20000) || changed;
+        changed = ImGui::RadioButton("30,000", &simulationVariables.numParticles, 30000) || changed;
+        changed = ImGui::RadioButton("40,000", &simulationVariables.numParticles, 40000) || changed;
+
+        simulationVariables.changed = changed;
+
         ImGui::End();
     }
 
