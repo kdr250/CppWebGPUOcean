@@ -10,6 +10,5 @@ int main(int argc, char* argv[])
 
     app.RunLoop();
 
-    app.Shutdown();
     return 0;
 }

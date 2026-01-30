@@ -196,6 +196,7 @@ void Application::RunLoop()
         if (pApp->ShouldClose())
         {
             emscripten_cancel_main_loop();
+            pApp->Shutdown();
             return;
         }
         pApp->Loop();
@@ -206,15 +207,8 @@ void Application::RunLoop()
     {
         Loop();
     }
+    Shutdown();
 #endif
-}
-
-void Application::Shutdown()
-{
-    TerminateGUI();
-
-    glfwDestroyWindow(mWindow);
-    glfwTerminate();
 }
 
 void Application::InitializeBuffers()
@@ -478,6 +472,14 @@ void Application::TerminateGUI()
 {
     ImGui_ImplWGPU_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+}
+
+void Application::Shutdown()
+{
+    TerminateGUI();
+
+    glfwDestroyWindow(mWindow);
+    glfwTerminate();
 }
 
 bool Application::ShouldClose()

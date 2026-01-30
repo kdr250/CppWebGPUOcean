@@ -65,7 +65,6 @@ public:
 
     bool Initialize();
     void RunLoop();
-    void Shutdown();
 
 private:
     void InitializeBuffers();
@@ -90,6 +89,7 @@ private:
     void InitializeGUI();
     void TerminateGUI();
 
+    void Shutdown();
     bool ShouldClose();
 
 private:
