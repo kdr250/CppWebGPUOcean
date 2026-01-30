@@ -138,7 +138,7 @@ void SPHSimulator::CreateBuffers()
 
     // Cell particle count
     bufferDesc.label            = WebGPUUtils::GenerateString("cell particle count buffer");
-    bufferDesc.size             = 4 * (mGridCount + 1);
+    bufferDesc.size             = sizeof(uint32_t) * (mGridCount + 1);
     bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
     bufferDesc.mappedAtCreation = false;
 
@@ -146,7 +146,7 @@ void SPHSimulator::CreateBuffers()
 
     // particle cell offset
     bufferDesc.label            = WebGPUUtils::GenerateString("particle cell offset buffer");
-    bufferDesc.size             = 4 * NUM_PARTICLES_MAX;
+    bufferDesc.size             = sizeof(uint32_t) * NUM_PARTICLES_MAX;
     bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
     bufferDesc.mappedAtCreation = false;
 
@@ -170,7 +170,7 @@ void SPHSimulator::CreateBuffers()
 
     // target particles
     bufferDesc.label            = WebGPUUtils::GenerateString("target particles buffer");
-    bufferDesc.size             = SPH_PARTICLE_STRUCTURE_SIZE * NUM_PARTICLES_MAX;
+    bufferDesc.size             = sizeof(SPHParticle) * NUM_PARTICLES_MAX;
     bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
     bufferDesc.mappedAtCreation = false;
 
