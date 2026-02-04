@@ -154,31 +154,58 @@ bool Application::Initialize()
     mRenderUniforms.screenSize = windowSize;
     mRenderUniforms.texelSize  = glm::vec2(1.0f / windowSize.x, 1.0 / windowSize.y);
 
-    // Setup variables
-    float fov          = 45.0f * glm::pi<float>() / 180.0f;
-    float initDistance = 3.0f;
-    glm::vec3 target(0.0f, -1.9f, 0.0f);
-    float zoomRate = 0.05f;
-    float radius   = 0.04f;
-    float diameter = 2.0f * radius;
+    // Setup SPH
+    {
+        float fov          = 45.0f * glm::pi<float>() / 180.0f;
+        float initDistance = 3.0f;
+        glm::vec3 target(0.0f, -1.9f, 0.0f);
+        float zoomRate = 0.05f;
+        float radius   = 0.04f;
+        float diameter = 2.0f * radius;
 
-    mSPHSimulator =
-        std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
+        mSPHSimulator =
+            std::make_unique<SPHSimulator>(mDevice, mParticleBuffer, mPosvelBuffer, diameter);
 
-    mFluidRenderer = std::make_unique<FluidRenderer>(mDevice,
-                                                     mRenderUniforms.screenSize,
-                                                     mSurfaceFormat,
-                                                     radius,
-                                                     fov,
-                                                     mRenderUniformBuffer,
-                                                     mPosvelBuffer);
+        mSPHRenderer = std::make_unique<FluidRenderer>(mDevice,
+                                                       mRenderUniforms.screenSize,
+                                                       mSurfaceFormat,
+                                                       radius,
+                                                       fov,
+                                                       mRenderUniformBuffer,
+                                                       mPosvelBuffer);
 
-    mCamera = std::make_unique<Camera>();
+        mSPHSimulator->Reset(mSimulationVariables.numParticles,
+                             mSimulationVariables.initialBoxSize,
+                             mRenderUniforms);
 
-    mSPHSimulator->Reset(mSimulationVariables.numParticles,
-                         mSimulationVariables.initialBoxSize,
-                         mRenderUniforms);
-    mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
+        mCamera = std::make_unique<Camera>();
+        mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
+    }
+
+    // Setup SPH
+    {
+        float fov          = 45.0f * glm::pi<float>() / 180.0f;
+        float initDistance = 3.0f;
+        glm::vec3 target(0.0f, -1.9f, 0.0f);
+        float zoomRate = 0.05f;
+        float radius   = 0.04f;
+        float diameter = 2.0f * radius;
+
+        mMlsMpmSimulator =
+            std::make_unique<MlsMpmSimulator>(mParticleBuffer, mPosvelBuffer, diameter, mDevice);
+
+        mSPHRenderer = std::make_unique<FluidRenderer>(mDevice,
+                                                       mRenderUniforms.screenSize,
+                                                       mSurfaceFormat,
+                                                       radius,
+                                                       fov,
+                                                       mRenderUniformBuffer,
+                                                       mPosvelBuffer);
+
+        mMlsMpmSimulator->Reset(mSimulationVariables.numParticles,
+                                mSimulationVariables.initialBoxSize,
+                                mRenderUniforms);
+    }
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
@@ -255,16 +282,35 @@ void Application::UpdateGame()
 {
     if (mSimulationVariables.changed)
     {
-        mSPHSimulator->Reset(mSimulationVariables.numParticles,
-                             mSimulationVariables.initialBoxSize,
-                             mRenderUniforms);
+        if (mSimulationVariables.sph)
+        {
+            mSPHSimulator->Reset(mSimulationVariables.numParticles,
+                                 mSimulationVariables.initialBoxSize,
+                                 mRenderUniforms);
+        }
+        else
+        {
+            mMlsMpmSimulator->Reset(mSimulationVariables.numParticles,
+                                    mSimulationVariables.initialBoxSize,
+                                    mRenderUniforms);
+        }
     }
 
     if (mSimulationVariables.boxSizeChanged)
     {
-        glm::vec3 realBoxSize = mSimulationVariables.initialBoxSize;
-        realBoxSize.z *= mSimulationVariables.boxWidthRatio;
-        mSPHSimulator->ChangeBoxSize(realBoxSize);
+        if (mSimulationVariables.sph)
+        {
+            glm::vec3 realBoxSize = mSimulationVariables.initialBoxSize;
+            realBoxSize.z *= mSimulationVariables.boxWidthRatio;
+            mSPHSimulator->ChangeBoxSize(realBoxSize);
+        }
+        else
+        {
+            // FIXME
+            glm::vec3 realBoxSize = mSimulationVariables.initialBoxSize;
+            realBoxSize.z *= mSimulationVariables.boxWidthRatio;
+            mMlsMpmSimulator->ChangeBoxSize(realBoxSize);
+        }
     }
 }
 
@@ -288,8 +334,16 @@ void Application::GenerateOutput()
     };
     wgpu::CommandEncoder commandEncoder = mDevice.CreateCommandEncoder(&encoderDesc);
 
-    mSPHSimulator->Compute(commandEncoder);
-    mFluidRenderer->Draw(commandEncoder, targetView, mSimulationVariables);
+    if (mSimulationVariables.sph)
+    {
+        mSPHSimulator->Compute(commandEncoder);
+        mSPHRenderer->Draw(commandEncoder, targetView, mSimulationVariables);
+    }
+    else
+    {
+        mMlsMpmSimulator->Compute(commandEncoder);
+        mMlsMpmRenderer->Draw(commandEncoder, targetView, mSimulationVariables);
+    }
 
     // Finally encode and submit the render pass
     wgpu::CommandBufferDescriptor cmdBufferDescriptor {

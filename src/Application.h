@@ -13,6 +13,7 @@
 #include "FluidRenderer.h"
 #include "Camera.h"
 #include "sph/SPHSimulator.h"
+#include "mpm/MlsMpmSimulator.h"
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -50,6 +51,7 @@ static_assert(sizeof(PosVel) % 16 == 0);
 struct SimulationVariables
 {
     bool changed     = false;
+    bool sph         = true;
     bool drawSpheres = false;
     int numParticles = 20000;
 
@@ -100,7 +102,8 @@ private:
     wgpu::Surface mSurface             = nullptr;
     wgpu::TextureFormat mSurfaceFormat = wgpu::TextureFormat::Undefined;
 
-    std::unique_ptr<FluidRenderer> mFluidRenderer;
+    std::unique_ptr<FluidRenderer> mSPHRenderer;
+    std::unique_ptr<FluidRenderer> mMlsMpmRenderer;
     std::unique_ptr<Camera> mCamera;
 
     wgpu::Buffer mRenderUniformBuffer;
@@ -110,6 +113,7 @@ private:
     RenderUniforms mRenderUniforms;
 
     std::unique_ptr<SPHSimulator> mSPHSimulator;
+    std::unique_ptr<MlsMpmSimulator> mMlsMpmSimulator;
 
     SimulationVariables mSimulationVariables;
 };
