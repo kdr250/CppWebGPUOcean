@@ -23,6 +23,9 @@ public:
     void ChangeBoxSize(const glm::vec3& realBoxSize);
 
 private:
+    void CreateBuffers();
+
+private:
     wgpu::Device mDevice;
 
     // clear grid
@@ -62,6 +65,7 @@ private:
     wgpu::BindGroup mCopyPositionBindGroup;
 
     // buffers
+    wgpu::Buffer mCellBuffer;
     wgpu::Buffer mRealBoxSizeBuffer;
     wgpu::Buffer mInitBoxSizeBuffer;
     wgpu::Buffer mParticleBuffer;
@@ -69,6 +73,7 @@ private:
     int mMaxXGrids      = 64;
     int mMaxYGrids      = 64;
     int mMaxZGrids      = 64;
+    int mMaxGridCount   = mMaxXGrids * mMaxYGrids * mMaxZGrids;
     int mCellStructSize = 16;
     int mNumParticles   = 0;
     int mGridCount      = 0;
