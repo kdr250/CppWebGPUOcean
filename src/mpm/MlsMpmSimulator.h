@@ -8,6 +8,14 @@
 
 struct RenderUniforms;
 
+struct Cell
+{
+    int vx;
+    int vy;
+    int vz;
+    int mass;
+};
+
 class MlsMpmSimulator
 {
 public:
@@ -24,6 +32,11 @@ public:
 
 private:
     void CreateBuffers();
+
+    // clear grid
+    void InitializeClearGridPipeline();
+    void InitializeClearGridBindGroups();
+    void ComputeClearGrid(wgpu::ComputePassEncoder& computePass);
 
 private:
     wgpu::Device mDevice;
@@ -70,12 +83,11 @@ private:
     wgpu::Buffer mInitBoxSizeBuffer;
     wgpu::Buffer mParticleBuffer;
 
-    int mMaxXGrids      = 64;
-    int mMaxYGrids      = 64;
-    int mMaxZGrids      = 64;
-    int mMaxGridCount   = mMaxXGrids * mMaxYGrids * mMaxZGrids;
-    int mCellStructSize = 16;
-    int mNumParticles   = 0;
-    int mGridCount      = 0;
+    int mMaxXGrids    = 64;
+    int mMaxYGrids    = 64;
+    int mMaxZGrids    = 64;
+    int mMaxGridCount = mMaxXGrids * mMaxYGrids * mMaxZGrids;
+    int mNumParticles = 0;
+    int mGridCount    = 0;
     float mRenderDiameter;
 };
