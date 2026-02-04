@@ -24,7 +24,20 @@ MlsMpmSimulator::MlsMpmSimulator(wgpu::Buffer particleBuffer,
     mParticleBuffer = particleBuffer;
 }
 
-void MlsMpmSimulator::Compute(wgpu::CommandEncoder commandEncoder) {}
+void MlsMpmSimulator::Compute(wgpu::CommandEncoder commandEncoder)
+{
+    wgpu::ComputePassDescriptor computePassDesc {
+        .timestampWrites = nullptr,
+    };
+    wgpu::ComputePassEncoder computePass = commandEncoder.BeginComputePass(&computePassDesc);
+
+    for (int i = 0; i < 2; ++i)
+    {
+        ComputeClearGrid(computePass);
+    }
+
+    computePass.End();
+}
 
 void MlsMpmSimulator::Reset(int numParticles,
                             const glm::vec3& initHalfBoxSize,
@@ -121,4 +134,9 @@ void MlsMpmSimulator::InitializeClearGridBindGroups()
     mClearGridBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
 
-void MlsMpmSimulator::ComputeClearGrid(wgpu::ComputePassEncoder& computePass) {}
+void MlsMpmSimulator::ComputeClearGrid(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mClearGridBindGroup, 0, nullptr);
+    computePass.SetPipeline(mClearGridPipeline);
+    computePass.DispatchWorkgroups(std::ceil(mGridCount / 64.0f));
+}
