@@ -18,6 +18,9 @@ MlsMpmSimulator::MlsMpmSimulator(wgpu::Buffer particleBuffer,
     // Pipelines
     InitializeClearGridPipeline();
 
+    // Bind groups
+    InitializeClearGridBindGroups();
+
     mParticleBuffer = particleBuffer;
 }
 
@@ -100,6 +103,22 @@ void MlsMpmSimulator::InitializeClearGridPipeline()
     mClearGridPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
 }
 
-void MlsMpmSimulator::InitializeClearGridBindGroups() {}
+void MlsMpmSimulator::InitializeClearGridBindGroups()
+{
+    std::vector<wgpu::BindGroupEntry> bindings(1);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = mCellBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = mCellBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("grid clear bind group"),
+        .layout     = mClearGridBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mClearGridBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
 
 void MlsMpmSimulator::ComputeClearGrid(wgpu::ComputePassEncoder& computePass) {}
