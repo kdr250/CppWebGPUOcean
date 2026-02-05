@@ -90,7 +90,11 @@ void MlsMpmSimulator::Reset(int numParticles,
     std::cout << "MLS-MPM numParticle = " << mNumParticles << std::endl;
 }
 
-void MlsMpmSimulator::ChangeBoxSize(const glm::vec3& realBoxSize) {}
+void MlsMpmSimulator::ChangeBoxSize(const glm::vec3& realBoxSize)
+{
+    wgpu::Queue queue = mDevice.GetQueue();
+    queue.WriteBuffer(mRealBoxSizeBuffer, 0, glm::value_ptr(realBoxSize), sizeof(glm::vec3));
+}
 
 void MlsMpmSimulator::CreateBuffers()
 {
