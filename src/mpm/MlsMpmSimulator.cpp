@@ -36,6 +36,7 @@ MlsMpmSimulator::MlsMpmSimulator(wgpu::Buffer particleBuffer,
     InitializeP2G1BindGroups();
     InitializeP2G2BindGroups();
     InitializeUpdateGridBindGroups();
+    InitializeG2PBindGroups();
 }
 
 void MlsMpmSimulator::Compute(wgpu::CommandEncoder commandEncoder)
@@ -529,4 +530,42 @@ void MlsMpmSimulator::InitializeG2PPipeline()
     };
 
     mG2PPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
+}
+
+void MlsMpmSimulator::InitializeG2PBindGroups()
+{
+    std::vector<wgpu::BindGroupEntry> bindings(5);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = mParticleBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = mParticleBuffer.GetSize();
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mCellBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = mCellBuffer.GetSize();
+
+    bindings[2].binding = 2;
+    bindings[2].buffer  = mRealBoxSizeBuffer;
+    bindings[2].offset  = 0;
+    bindings[2].size    = mRealBoxSizeBuffer.GetSize();
+
+    bindings[3].binding = 3;
+    bindings[3].buffer  = mInitBoxSizeBuffer;
+    bindings[3].offset  = 0;
+    bindings[3].size    = mInitBoxSizeBuffer.GetSize();
+
+    bindings[4].binding = 4;
+    bindings[4].buffer  = mConstantsBuffer;
+    bindings[4].offset  = 0;
+    bindings[4].size    = mConstantsBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("G2P bind group"),
+        .layout     = mG2PBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mG2PBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
