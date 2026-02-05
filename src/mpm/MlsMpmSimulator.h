@@ -53,6 +53,11 @@ private:
     void InitializeP2G1BindGroups();
     void ComputeP2G1(wgpu::ComputePassEncoder& computePass);
 
+    // P2G #2 pipeline
+    void InitializeP2G2Pipeline();
+    void InitializeP2G2BindGroups();
+    void ComputeP2G2(wgpu::ComputePassEncoder& computePass);
+
 private:
     wgpu::Device mDevice;
 
