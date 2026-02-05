@@ -38,6 +38,7 @@ MlsMpmSimulator::MlsMpmSimulator(wgpu::Buffer particleBuffer,
     InitializeP2G2BindGroups();
     InitializeUpdateGridBindGroups();
     InitializeG2PBindGroups();
+    InitializeCopyPositionBindGroups(posvelBuffer);
 }
 
 void MlsMpmSimulator::Compute(wgpu::CommandEncoder commandEncoder)
@@ -623,4 +624,27 @@ void MlsMpmSimulator::InitializeCopyPositionPipeline()
     };
 
     mCopyPositionPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
+}
+
+void MlsMpmSimulator::InitializeCopyPositionBindGroups(wgpu::Buffer posvelBuffer)
+{
+    std::vector<wgpu::BindGroupEntry> bindings(2);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = mParticleBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = mParticleBuffer.GetSize();
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = posvelBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = posvelBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("copy position bind group"),
+        .layout     = mCopyPositionBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mCopyPositionBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
