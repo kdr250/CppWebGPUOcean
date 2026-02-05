@@ -30,6 +30,7 @@ MlsMpmSimulator::MlsMpmSimulator(wgpu::Buffer particleBuffer,
     InitializeP2G2Pipeline();
     InitializeUpdateGridPipeline();
     InitializeG2PPipeline();
+    InitializeCopyPositionPipeline();
 
     // Bind groups
     InitializeClearGridBindGroups();
@@ -576,4 +577,50 @@ void MlsMpmSimulator::ComputeG2P(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mG2PBindGroup, 0, nullptr);
     computePass.SetPipeline(mG2PPipeline);
     computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
+}
+
+void MlsMpmSimulator::InitializeCopyPositionPipeline()
+{
+    wgpu::ShaderModule copyPositionModule =
+        ResourceManager::LoadShaderModule("resources/shader/mls-mpm/copyPosition.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(2);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout0 = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout0);
+    bindingLayout0.binding     = 0;
+    bindingLayout0.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout0.buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout1 = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout1);
+    bindingLayout1.binding     = 1;
+    bindingLayout1.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout1.buffer.type = wgpu::BufferBindingType::Storage;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mCopyPositionBindGroupLayout   = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mCopyPositionBindGroupLayout;
+    mCopyPositionLayout             = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::ComputePipelineDescriptor computePipelineDesc {
+        .label  = WebGPUUtils::GenerateString("copy position pipeline"),
+        .layout = mCopyPositionLayout,
+        .compute =
+            {
+                .module     = copyPositionModule,
+                .entryPoint = "copyPosition",
+            },
+    };
+
+    mCopyPositionPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
 }

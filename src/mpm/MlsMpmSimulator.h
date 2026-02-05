@@ -68,6 +68,11 @@ private:
     void InitializeG2PBindGroups();
     void ComputeG2P(wgpu::ComputePassEncoder& computePass);
 
+    // Copy position
+    void InitializeCopyPositionPipeline();
+    void InitializeCopyPositionBindGroups(wgpu::Buffer posvelBuffer);
+    void ComputeCopyPosition(wgpu::ComputePassEncoder& computePass);
+
 private:
     wgpu::Device mDevice;
 
