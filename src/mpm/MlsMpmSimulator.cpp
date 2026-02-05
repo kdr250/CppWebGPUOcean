@@ -55,6 +55,7 @@ void MlsMpmSimulator::Compute(wgpu::CommandEncoder commandEncoder)
         ComputeP2G2(computePass);
         ComputeUpdateGrid(computePass);
         ComputeG2P(computePass);
+        ComputeCopyPosition(computePass);
     }
 
     computePass.End();
@@ -647,4 +648,11 @@ void MlsMpmSimulator::InitializeCopyPositionBindGroups(wgpu::Buffer posvelBuffer
         .entries    = bindings.data(),
     };
     mCopyPositionBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void MlsMpmSimulator::ComputeCopyPosition(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mCopyPositionBindGroup, 0, nullptr);
+    computePass.SetPipeline(mCopyPositionPipeline);
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
 }
