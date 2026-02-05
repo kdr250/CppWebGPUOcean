@@ -108,8 +108,6 @@ private:
 
     std::vector<SPHParticle> InitializeDamBreak(const glm::vec3& initHalfBoxSize, int numParticles);
 
-    float Random();
-
 private:
     wgpu::Device mDevice;
 

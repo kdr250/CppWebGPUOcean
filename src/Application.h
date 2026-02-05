@@ -68,6 +68,8 @@ public:
     bool Initialize();
     void RunLoop();
 
+    static float Random();
+
 private:
     void InitializeBuffers();
 

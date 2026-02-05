@@ -656,3 +656,35 @@ void MlsMpmSimulator::ComputeCopyPosition(wgpu::ComputePassEncoder& computePass)
     computePass.SetPipeline(mCopyPositionPipeline);
     computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
 }
+
+std::vector<MlsMpmParticle> MlsMpmSimulator::InitializeDamBreak(const glm::vec3& initBoxSize,
+                                                                int numParticles)
+{
+    std::vector<MlsMpmParticle> result(numParticles);
+    const float spacing = 0.65f;
+    mNumParticles       = 0;
+
+    for (float j = 0.0f; j < initBoxSize[1] * 0.8f && mNumParticles < numParticles; j += spacing)
+    {
+        for (float i = 3.0f; i < initBoxSize[0] - 4.0f && mNumParticles < numParticles;
+             i += spacing)
+        {
+            for (float k = 3.0f; k < initBoxSize[2] / 2.0f && mNumParticles < numParticles;
+                 k += spacing)
+            {
+                float jitter = 2.0f * Application::Random();
+                MlsMpmParticle particle {
+                    .position = glm::vec3(i + jitter, j + jitter, k + jitter),
+                    .v        = glm::vec3(0.0f),
+                    .C1       = glm::vec3(0.0f),
+                    .C2       = glm::vec3(0.0f),
+                    .C3       = glm::vec3(0.0f),
+                };
+                result[mNumParticles] = particle;
+                mNumParticles++;
+            }
+        }
+    }
+
+    return result;
+}

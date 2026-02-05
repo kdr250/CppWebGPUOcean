@@ -897,7 +897,7 @@ std::vector<SPHParticle> SPHSimulator::InitializeDamBreak(const glm::vec3& initH
             for (float z = -0.95f * initHalfBoxSize[2]; z < 0.0f && mNumParticles < numParticles;
                  z += DIST_FACTOR * mKernelRadius)
             {
-                float jitter = 0.001f * Random();
+                float jitter = 0.001f * Application::Random();
                 SPHParticle particle {
                     .position    = glm::vec3(x + jitter, y + jitter, z + jitter),
                     .v           = glm::vec3(0.0f),
@@ -912,12 +912,4 @@ std::vector<SPHParticle> SPHSimulator::InitializeDamBreak(const glm::vec3& initH
     }
 
     return particles;
-}
-
-float SPHSimulator::Random()
-{
-    static std::random_device device;
-    static std::mt19937_64 generator(device());
-    static std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
-    return distribution(generator);
 }

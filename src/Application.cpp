@@ -7,6 +7,7 @@
 #include <glfw3webgpu.h>
 #include <iostream>
 #include <fstream>
+#include <random>
 
 #include "WebGPUUtils.h"
 #include "ResourceManager.h"
@@ -236,6 +237,14 @@ void Application::RunLoop()
     }
     Shutdown();
 #endif
+}
+
+float Application::Random()
+{
+    static std::random_device device;
+    static std::mt19937_64 generator(device());
+    static std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+    return distribution(generator);
 }
 
 void Application::InitializeBuffers()

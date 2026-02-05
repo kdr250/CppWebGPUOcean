@@ -25,6 +25,20 @@ struct Constants
     float fixedPointMultiplier;
 };
 
+struct MlsMpmParticle
+{
+    glm::vec3 position;
+    float _padding1;
+    glm::vec3 v;
+    float _padding2;
+    glm::vec3 C1;
+    float _padding3;
+    glm::vec3 C2;
+    float _padding4;
+    glm::vec3 C3;
+    float _padding5;
+};
+
 class MlsMpmSimulator
 {
 public:
@@ -72,6 +86,9 @@ private:
     void InitializeCopyPositionPipeline();
     void InitializeCopyPositionBindGroups(wgpu::Buffer posvelBuffer);
     void ComputeCopyPosition(wgpu::ComputePassEncoder& computePass);
+
+    std::vector<MlsMpmParticle> InitializeDamBreak(const glm::vec3& initHalfBoxSize,
+                                                   int numParticles);
 
 private:
     wgpu::Device mDevice;
