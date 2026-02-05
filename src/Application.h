@@ -20,6 +20,9 @@
     #include <emscripten/html5.h>
 #endif
 
+static constexpr int NUM_PARTICLES_MIN = 10000;
+static constexpr int NUM_PARTICLES_MAX = 200000;
+
 struct RenderUniforms
 {
     glm::mat4 invProjectionMatrix;
@@ -50,8 +53,10 @@ static_assert(sizeof(PosVel) % 16 == 0);
 
 struct SimulationVariables
 {
+    bool simulationChnaged = false;
+    int sph                = 1;
+
     bool changed     = false;
-    bool sph         = true;
     bool drawSpheres = false;
     int numParticles = 20000;
 
@@ -78,6 +83,9 @@ private:
     void ProcessInput();
     void UpdateGame();
     void GenerateOutput();
+
+    void ResetToSPH();
+    void ResetToMlsMpm();
 
     wgpu::TextureView GetNextSurfaceTextureView();
 

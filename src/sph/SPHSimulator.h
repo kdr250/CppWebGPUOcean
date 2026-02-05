@@ -9,9 +9,6 @@
 
 struct RenderUniforms;
 
-static constexpr int NUM_PARTICLES_MIN = 10000;
-static constexpr int NUM_PARTICLES_MAX = 200000;
-
 struct Environment
 {
     int xGrids;

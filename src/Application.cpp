@@ -183,29 +183,25 @@ bool Application::Initialize()
         mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
     }
 
-    // Setup SPH
+    // Setup MLS-MPM
     {
         float fov          = 45.0f * glm::pi<float>() / 180.0f;
-        float initDistance = 3.0f;
-        glm::vec3 target(0.0f, -1.9f, 0.0f);
-        float zoomRate = 0.05f;
-        float radius   = 0.04f;
+        float initDistance = 70.0f;
+        glm::vec3 target(40.0f / 2.0f, 30.0f / 4.0f, 60.0f / 2.0f);
+        float zoomRate = 1.5f;
+        float radius   = 0.6f;
         float diameter = 2.0f * radius;
 
         mMlsMpmSimulator =
             std::make_unique<MlsMpmSimulator>(mParticleBuffer, mPosvelBuffer, diameter, mDevice);
 
-        mSPHRenderer = std::make_unique<FluidRenderer>(mDevice,
-                                                       mRenderUniforms.screenSize,
-                                                       mSurfaceFormat,
-                                                       radius,
-                                                       fov,
-                                                       mRenderUniformBuffer,
-                                                       mPosvelBuffer);
-
-        mMlsMpmSimulator->Reset(mSimulationVariables.numParticles,
-                                mSimulationVariables.initialBoxSize,
-                                mRenderUniforms);
+        mMlsMpmRenderer = std::make_unique<FluidRenderer>(mDevice,
+                                                          mRenderUniforms.screenSize,
+                                                          mSurfaceFormat,
+                                                          radius,
+                                                          fov,
+                                                          mRenderUniformBuffer,
+                                                          mPosvelBuffer);
     }
 
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
@@ -259,8 +255,9 @@ void Application::InitializeBuffers()
     mRenderUniformBuffer = mDevice.CreateBuffer(&bufferDesc);
 
     // particle storage buffer
+    auto maxParticleSize        = std::max(sizeof(SPHParticle), sizeof(MlsMpmParticle));
     bufferDesc.label            = WebGPUUtils::GenerateString("particle storage buffer");
-    bufferDesc.size             = sizeof(SPHParticle) * NUM_PARTICLES_MAX;
+    bufferDesc.size             = maxParticleSize * NUM_PARTICLES_MAX;
     bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage;
     bufferDesc.mappedAtCreation = false;
 
@@ -289,6 +286,18 @@ void Application::ProcessInput()
 
 void Application::UpdateGame()
 {
+    if (mSimulationVariables.simulationChnaged)
+    {
+        if (mSimulationVariables.sph)
+        {
+            ResetToSPH();
+        }
+        else
+        {
+            ResetToMlsMpm();
+        }
+    }
+
     if (mSimulationVariables.changed)
     {
         if (mSimulationVariables.sph)
@@ -307,17 +316,14 @@ void Application::UpdateGame()
 
     if (mSimulationVariables.boxSizeChanged)
     {
+        glm::vec3 realBoxSize = mSimulationVariables.initialBoxSize;
+        realBoxSize.z *= mSimulationVariables.boxWidthRatio;
         if (mSimulationVariables.sph)
         {
-            glm::vec3 realBoxSize = mSimulationVariables.initialBoxSize;
-            realBoxSize.z *= mSimulationVariables.boxWidthRatio;
             mSPHSimulator->ChangeBoxSize(realBoxSize);
         }
         else
         {
-            // FIXME
-            glm::vec3 realBoxSize = mSimulationVariables.initialBoxSize;
-            realBoxSize.z *= mSimulationVariables.boxWidthRatio;
             mMlsMpmSimulator->ChangeBoxSize(realBoxSize);
         }
     }
@@ -367,6 +373,43 @@ void Application::GenerateOutput()
     mSurface.Present();
     mDevice.Tick();
 #endif
+}
+
+void Application::ResetToSPH()
+{
+    float fov                         = 45.0f * glm::pi<float>() / 180.0f;
+    float initDistance                = 3.0f;
+    float zoomRate                    = 0.05f;
+    mSimulationVariables.numParticles = 20000;
+
+    mSimulationVariables.initialBoxSize = glm::vec3(1.0f, 2.0f, 1.0f);
+    glm::vec3 target(0.0f, -1.0f * mSimulationVariables.initialBoxSize[1] + 0.1f, 0.0f);
+
+    mSPHSimulator->Reset(mSimulationVariables.numParticles,
+                         mSimulationVariables.initialBoxSize,
+                         mRenderUniforms);
+
+    mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
+}
+
+void Application::ResetToMlsMpm()
+{
+    float fov                         = 45.0f * glm::pi<float>() / 180.0f;
+    float initDistance                = 70.0f;
+    float zoomRate                    = 1.5f;
+    float radius                      = 0.6f;
+    mSimulationVariables.numParticles = 70000;
+
+    mSimulationVariables.initialBoxSize = glm::vec3(40.0f, 30.0f, 60.0f);
+    glm::vec3 target(mSimulationVariables.initialBoxSize[0] / 2.0f,
+                     mSimulationVariables.initialBoxSize[1] / 4.0f,
+                     mSimulationVariables.initialBoxSize[2] / 2.0f);
+
+    mMlsMpmSimulator->Reset(mSimulationVariables.numParticles,
+                            mSimulationVariables.initialBoxSize,
+                            mRenderUniforms);
+
+    mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
 }
 
 wgpu::TextureView Application::GetNextSurfaceTextureView()

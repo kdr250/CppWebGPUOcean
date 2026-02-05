@@ -1020,18 +1020,44 @@ void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass,
 
     // Build UI
     {
-        bool changed = false;
         ImGui::Begin("Fluid Simulation");
 
+        bool simChnaged = false;
+        simChnaged      = ImGui::RadioButton("SPH", &simulationVariables.sph, 1) || simChnaged;
+        simChnaged      = ImGui::RadioButton("MLS-MPM", &simulationVariables.sph, 0) || simChnaged;
+
+        simulationVariables.simulationChnaged = simChnaged;
+
+        ImGui::Separator();
+
+        bool changed = false;
         changed = ImGui::Checkbox("Draw Particles", &simulationVariables.drawSpheres) || changed;
 
         ImGui::Separator();
 
         ImGui::Text("Number of Particles");
-        changed = ImGui::RadioButton("10,000", &simulationVariables.numParticles, 10000) || changed;
-        changed = ImGui::RadioButton("20,000", &simulationVariables.numParticles, 20000) || changed;
-        changed = ImGui::RadioButton("30,000", &simulationVariables.numParticles, 30000) || changed;
-        changed = ImGui::RadioButton("40,000", &simulationVariables.numParticles, 40000) || changed;
+        if (simulationVariables.sph)
+        {
+            changed =
+                ImGui::RadioButton("10,000", &simulationVariables.numParticles, 10000) || changed;
+            changed =
+                ImGui::RadioButton("20,000", &simulationVariables.numParticles, 20000) || changed;
+            changed =
+                ImGui::RadioButton("30,000", &simulationVariables.numParticles, 30000) || changed;
+            changed =
+                ImGui::RadioButton("40,000", &simulationVariables.numParticles, 40000) || changed;
+        }
+        else
+        {
+            changed =
+                ImGui::RadioButton("40,000", &simulationVariables.numParticles, 40000) || changed;
+            changed =
+                ImGui::RadioButton("70,000", &simulationVariables.numParticles, 70000) || changed;
+            changed =
+                ImGui::RadioButton("120,000", &simulationVariables.numParticles, 120000) || changed;
+            changed =
+                ImGui::RadioButton("200,000", &simulationVariables.numParticles, 200000) || changed;
+        }
 
         ImGui::Separator();
 
