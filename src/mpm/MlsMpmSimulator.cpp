@@ -29,6 +29,7 @@ MlsMpmSimulator::MlsMpmSimulator(wgpu::Buffer particleBuffer,
     InitializeP2G1Pipeline();
     InitializeP2G2Pipeline();
     InitializeUpdateGridPipeline();
+    InitializeG2PPipeline();
 
     // Bind groups
     InitializeClearGridBindGroups();
@@ -464,4 +465,68 @@ void MlsMpmSimulator::ComputeUpdateGrid(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mUpdateGridBindGroup, 0, nullptr);
     computePass.SetPipeline(mUpdateGridPipeline);
     computePass.DispatchWorkgroups(std::ceil(mGridCount / 64.0f));
+}
+
+void MlsMpmSimulator::InitializeG2PPipeline()
+{
+    wgpu::ShaderModule g2pModule =
+        ResourceManager::LoadShaderModule("resources/shader/mls-mpm/g2p.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(5);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout0 = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout0);
+    bindingLayout0.binding     = 0;
+    bindingLayout0.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout0.buffer.type = wgpu::BufferBindingType::Storage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout1 = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout1);
+    bindingLayout1.binding     = 1;
+    bindingLayout1.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout1.buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout2 = bindingLayoutEentries[2];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout2);
+    bindingLayout2.binding     = 2;
+    bindingLayout2.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout2.buffer.type = wgpu::BufferBindingType::Uniform;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout3 = bindingLayoutEentries[3];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout3);
+    bindingLayout3.binding     = 3;
+    bindingLayout3.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout3.buffer.type = wgpu::BufferBindingType::Uniform;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout4 = bindingLayoutEentries[4];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout4);
+    bindingLayout4.binding     = 4;
+    bindingLayout4.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout4.buffer.type = wgpu::BufferBindingType::Uniform;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mG2PBindGroupLayout            = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mG2PBindGroupLayout;
+    mG2PLayout                      = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::ComputePipelineDescriptor computePipelineDesc {
+        .label  = WebGPUUtils::GenerateString("G2P pipeline"),
+        .layout = mG2PLayout,
+        .compute =
+            {
+                .module     = g2pModule,
+                .entryPoint = "g2p",
+            },
+    };
+
+    mG2PPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
 }

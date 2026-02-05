@@ -63,6 +63,11 @@ private:
     void InitializeUpdateGridBindGroups();
     void ComputeUpdateGrid(wgpu::ComputePassEncoder& computePass);
 
+    // G2P
+    void InitializeG2PPipeline();
+    void InitializeG2PBindGroups();
+    void ComputeG2P(wgpu::ComputePassEncoder& computePass);
+
 private:
     wgpu::Device mDevice;
 
