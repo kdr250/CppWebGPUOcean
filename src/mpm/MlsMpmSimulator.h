@@ -16,6 +16,15 @@ struct Cell
     int mass;
 };
 
+struct Constants
+{
+    float stiffness;
+    float restDensity;
+    float dynamicViscosity;
+    float dt;
+    float fixedPointMultiplier;
+};
+
 class MlsMpmSimulator
 {
 public:
@@ -32,11 +41,17 @@ public:
 
 private:
     void CreateBuffers();
+    void WriteBuffers();
 
     // clear grid
     void InitializeClearGridPipeline();
     void InitializeClearGridBindGroups();
     void ComputeClearGrid(wgpu::ComputePassEncoder& computePass);
+
+    // P2G #1 pipeline
+    void InitializeP2G1Pipeline();
+    void InitializeP2G1BindGroups();
+    void ComputeP2G1(wgpu::ComputePassEncoder& computePass);
 
 private:
     wgpu::Device mDevice;
@@ -82,6 +97,7 @@ private:
     wgpu::Buffer mRealBoxSizeBuffer;
     wgpu::Buffer mInitBoxSizeBuffer;
     wgpu::Buffer mParticleBuffer;
+    wgpu::Buffer mConstantsBuffer;
 
     int mMaxXGrids    = 64;
     int mMaxYGrids    = 64;
@@ -90,4 +106,6 @@ private:
     int mNumParticles = 0;
     int mGridCount    = 0;
     float mRenderDiameter;
+
+    Constants mConstants;
 };

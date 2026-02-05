@@ -12,11 +12,19 @@ MlsMpmSimulator::MlsMpmSimulator(wgpu::Buffer particleBuffer,
     mDevice         = device;
     mRenderDiameter = renderDiameter;
 
+    mConstants.stiffness            = 3.0f;
+    mConstants.restDensity          = 4.0f;
+    mConstants.dynamicViscosity     = 0.1f;
+    mConstants.dt                   = 0.2f;
+    mConstants.fixedPointMultiplier = 1e7;
+
     // Buffers
     CreateBuffers();
+    WriteBuffers();
 
     // Pipelines
     InitializeClearGridPipeline();
+    InitializeP2G1Pipeline();
 
     // Bind groups
     InitializeClearGridBindGroups();
@@ -74,6 +82,21 @@ void MlsMpmSimulator::CreateBuffers()
     bufferDesc.mappedAtCreation = false;
 
     mInitBoxSizeBuffer = mDevice.CreateBuffer(&bufferDesc);
+
+    // constants
+    bufferDesc.label            = WebGPUUtils::GenerateString("constants buffer");
+    bufferDesc.size             = sizeof(Constants);
+    bufferDesc.usage            = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform;
+    bufferDesc.mappedAtCreation = false;
+
+    mConstantsBuffer = mDevice.CreateBuffer(&bufferDesc);
+}
+
+void MlsMpmSimulator::WriteBuffers()
+{
+    wgpu::Queue queue = mDevice.GetQueue();
+
+    queue.WriteBuffer(mConstantsBuffer, 0, &mConstants, sizeof(Constants));
 }
 
 void MlsMpmSimulator::InitializeClearGridPipeline()
@@ -139,4 +162,62 @@ void MlsMpmSimulator::ComputeClearGrid(wgpu::ComputePassEncoder& computePass)
     computePass.SetBindGroup(0, mClearGridBindGroup, 0, nullptr);
     computePass.SetPipeline(mClearGridPipeline);
     computePass.DispatchWorkgroups(std::ceil(mGridCount / 64.0f));
+}
+
+void MlsMpmSimulator::InitializeP2G1Pipeline()
+{
+    wgpu::ShaderModule p2g1Module =
+        ResourceManager::LoadShaderModule("resources/shader/mls-mpm/p2g_1.wgsl", mDevice);
+
+    // Create bind group entry
+    std::vector<wgpu::BindGroupLayoutEntry> bindingLayoutEentries(4);
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout0 = bindingLayoutEentries[0];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout0);
+    bindingLayout0.binding     = 0;
+    bindingLayout0.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout0.buffer.type = wgpu::BufferBindingType::ReadOnlyStorage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout1 = bindingLayoutEentries[1];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout1);
+    bindingLayout1.binding     = 1;
+    bindingLayout1.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout1.buffer.type = wgpu::BufferBindingType::Storage;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout2 = bindingLayoutEentries[2];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout2);
+    bindingLayout2.binding     = 2;
+    bindingLayout2.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout2.buffer.type = wgpu::BufferBindingType::Uniform;
+    // The uniform buffer binding
+    wgpu::BindGroupLayoutEntry& bindingLayout3 = bindingLayoutEentries[3];
+    WebGPUUtils::SetDefaultBindGroupLayout(bindingLayout3);
+    bindingLayout3.binding     = 3;
+    bindingLayout3.visibility  = wgpu::ShaderStage::Compute;
+    bindingLayout3.buffer.type = wgpu::BufferBindingType::Uniform;
+
+    // Create a bind group layout
+    wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc {};
+    bindGroupLayoutDesc.entryCount = static_cast<uint32_t>(bindingLayoutEentries.size());
+    bindGroupLayoutDesc.entries    = bindingLayoutEentries.data();
+    mP2G1BindGroupLayout           = mDevice.CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    wgpu::PipelineLayoutDescriptor layoutDesc {};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts     = &mP2G1BindGroupLayout;
+    mP2G1Layout                     = mDevice.CreatePipelineLayout(&layoutDesc);
+
+    // pipelines
+    wgpu::ComputePipelineDescriptor computePipelineDesc {
+        .label  = WebGPUUtils::GenerateString("P2G 1 pipeline"),
+        .layout = mP2G1Layout,
+        .compute =
+            {
+                .module     = p2g1Module,
+                .entryPoint = "p2g_1",
+            },
+    };
+
+    mP2G1Pipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
 }
