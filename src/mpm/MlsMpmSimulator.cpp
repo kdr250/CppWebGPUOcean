@@ -46,6 +46,7 @@ void MlsMpmSimulator::Compute(wgpu::CommandEncoder commandEncoder)
     {
         ComputeClearGrid(computePass);
         ComputeP2G1(computePass);
+        ComputeP2G2(computePass);
     }
 
     computePass.End();
@@ -355,4 +356,11 @@ void MlsMpmSimulator::InitializeP2G2BindGroups()
         .entries    = bindings.data(),
     };
     mP2G2BindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
+}
+
+void MlsMpmSimulator::ComputeP2G2(wgpu::ComputePassEncoder& computePass)
+{
+    computePass.SetBindGroup(0, mP2G2BindGroup, 0, nullptr);
+    computePass.SetPipeline(mP2G2Pipeline);
+    computePass.DispatchWorkgroups(std::ceil(mNumParticles / 64.0f));
 }
