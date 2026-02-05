@@ -58,6 +58,11 @@ private:
     void InitializeP2G2BindGroups();
     void ComputeP2G2(wgpu::ComputePassEncoder& computePass);
 
+    // Update grid
+    void InitializeUpdateGridPipeline();
+    void InitializeUpdateGridBindGroups();
+    void ComputeUpdateGrid(wgpu::ComputePassEncoder& computePass);
+
 private:
     wgpu::Device mDevice;
 
