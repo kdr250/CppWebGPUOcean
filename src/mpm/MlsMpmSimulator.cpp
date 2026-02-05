@@ -1,5 +1,7 @@
 #include "MlsMpmSimulator.h"
 
+#include <iostream>
+
 #include "../WebGPUUtils.h"
 #include "../ResourceManager.h"
 #include "../Application.h"
@@ -65,6 +67,27 @@ void MlsMpmSimulator::Reset(int numParticles,
                             const glm::vec3& initHalfBoxSize,
                             RenderUniforms& renderUniforms)
 {
+    renderUniforms.sphereSize = mRenderDiameter;
+    auto particleData         = InitializeDamBreak(initHalfBoxSize, numParticles);
+    auto maxGridCount         = mMaxXGrids * mMaxYGrids * mMaxZGrids;
+    mGridCount                = std::ceil(initHalfBoxSize[0]) * std::ceil(initHalfBoxSize[1])
+                 * std::ceil(initHalfBoxSize[2]);
+    if (mGridCount > maxGridCount)
+    {
+        std::cout << "mGridCount " << mGridCount << " should be equal to or less than maxGridCount "
+                  << maxGridCount << std::endl;
+        return;
+    }
+
+    wgpu::Queue queue = mDevice.GetQueue();
+    queue.WriteBuffer(mInitBoxSizeBuffer, 0, glm::value_ptr(initHalfBoxSize), sizeof(glm::vec3));
+    queue.WriteBuffer(mRealBoxSizeBuffer, 0, glm::value_ptr(initHalfBoxSize), sizeof(glm::vec3));
+    queue.WriteBuffer(mParticleBuffer,
+                      0,
+                      particleData.data(),
+                      sizeof(MlsMpmParticle) * particleData.size());
+
+    std::cout << "MLS-MPM numParticle = " << mNumParticles << std::endl;
 }
 
 void MlsMpmSimulator::ChangeBoxSize(const glm::vec3& realBoxSize) {}
