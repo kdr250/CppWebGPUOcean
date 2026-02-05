@@ -34,6 +34,7 @@ MlsMpmSimulator::MlsMpmSimulator(wgpu::Buffer particleBuffer,
     InitializeClearGridBindGroups();
     InitializeP2G1BindGroups();
     InitializeP2G2BindGroups();
+    InitializeUpdateGridBindGroups();
 }
 
 void MlsMpmSimulator::Compute(wgpu::CommandEncoder commandEncoder)
@@ -422,4 +423,37 @@ void MlsMpmSimulator::InitializeUpdateGridPipeline()
     };
 
     mUpdateGridPipeline = mDevice.CreateComputePipeline(&computePipelineDesc);
+}
+
+void MlsMpmSimulator::InitializeUpdateGridBindGroups()
+{
+    std::vector<wgpu::BindGroupEntry> bindings(4);
+
+    bindings[0].binding = 0;
+    bindings[0].buffer  = mCellBuffer;
+    bindings[0].offset  = 0;
+    bindings[0].size    = mCellBuffer.GetSize();
+
+    bindings[1].binding = 1;
+    bindings[1].buffer  = mRealBoxSizeBuffer;
+    bindings[1].offset  = 0;
+    bindings[1].size    = mRealBoxSizeBuffer.GetSize();
+
+    bindings[2].binding = 2;
+    bindings[2].buffer  = mInitBoxSizeBuffer;
+    bindings[2].offset  = 0;
+    bindings[2].size    = mInitBoxSizeBuffer.GetSize();
+
+    bindings[3].binding = 3;
+    bindings[3].buffer  = mConstantsBuffer;
+    bindings[3].offset  = 0;
+    bindings[3].size    = mConstantsBuffer.GetSize();
+
+    wgpu::BindGroupDescriptor bindGroupDesc {
+        .label      = WebGPUUtils::GenerateString("update grid bind group"),
+        .layout     = mUpdateGridBindGroupLayout,
+        .entryCount = static_cast<uint32_t>(bindings.size()),
+        .entries    = bindings.data(),
+    };
+    mUpdateGridBindGroup = mDevice.CreateBindGroup(&bindGroupDesc);
 }
