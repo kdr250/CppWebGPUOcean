@@ -58,11 +58,74 @@ struct SimulationVariables
 
     bool changed     = false;
     bool drawSpheres = false;
-    int numParticles = 20000;
 
-    bool boxSizeChanged      = false;
-    float boxWidthRatio      = 1.0f;
-    glm::vec3 initialBoxSize = glm::vec3(1.0f, 2.0f, 1.0f);
+    bool boxWidthChanged = false;
+    float boxWidthRatio  = 1.0f;
+
+    // SPH
+    int sphNumParticles[4] = {
+        10000,
+        20000,
+        30000,
+        40000,
+    };
+    glm::vec3 sphBoxSizes[4] = {
+        glm::vec3(0.7f, 2.0f, 0.7f),
+        glm::vec3(1.0f, 2.0f, 1.0f),
+        glm::vec3(1.2f, 2.0f, 1.2f),
+        glm::vec3(1.4f, 2.0f, 1.4f),
+    };
+    float sphInitDistances[4] = {
+        2.6f,
+        3.0f,
+        3.4f,
+        3.8f,
+    };
+
+    // MLS-MPM
+    int mpmNumParticles[4] = {
+        40000,
+        70000,
+        120000,
+        200000,
+    };
+    glm::vec3 mpmBoxSizes[4] = {
+        glm::vec3(35.0f, 25.0f, 55.0f),
+        glm::vec3(40.0f, 30.0f, 60.0f),
+        glm::vec3(45.0f, 40.0f, 80.0f),
+        glm::vec3(50.0f, 50.0f, 80.0f),
+    };
+    float mpmInitDistances[4] = {
+        60.0f,
+        70.0f,
+        90.0f,
+        100.0f,
+    };
+
+    int index          = 1;
+    int numParticles   = sphNumParticles[index];
+    glm::vec3 boxSize  = sphBoxSizes[index];
+    float initDistance = sphInitDistances[index];
+
+    float fov                            = 45.0f * glm::pi<float>() / 180.0f;
+    static constexpr float SPH_ZOOM_RATE = 0.05f;
+    static constexpr float MPM_ZOOM_RATE = 1.5f;
+
+    void Refresh()
+    {
+        if (sph)
+        {
+            numParticles = sphNumParticles[index];
+            boxSize      = sphBoxSizes[index];
+            initDistance = sphInitDistances[index];
+        }
+        else
+        {
+            numParticles = mpmNumParticles[index];
+            boxSize      = mpmBoxSizes[index];
+            initDistance = mpmInitDistances[index];
+        }
+    }
 };
 
 class Application

@@ -157,10 +157,11 @@ bool Application::Initialize()
 
     // Setup SPH
     {
-        float fov          = 45.0f * glm::pi<float>() / 180.0f;
-        float initDistance = 3.0f;
-        glm::vec3 target(0.0f, -1.9f, 0.0f);
-        float zoomRate = 0.05f;
+        float fov          = mSimulationVariables.fov;
+        float initDistance = mSimulationVariables.sphInitDistances[1];
+        glm::vec3 boxSize  = mSimulationVariables.sphBoxSizes[1];
+        glm::vec3 target(0.0f, -boxSize[1] + 0.1, 0.0f);
+        float zoomRate = SimulationVariables::SPH_ZOOM_RATE;
         float radius   = 0.04f;
         float diameter = 2.0f * radius;
 
@@ -176,7 +177,7 @@ bool Application::Initialize()
                                                        mPosvelBuffer);
 
         mSPHSimulator->Reset(mSimulationVariables.numParticles,
-                             mSimulationVariables.initialBoxSize,
+                             mSimulationVariables.boxSize,
                              mRenderUniforms);
 
         mCamera = std::make_unique<Camera>();
@@ -185,12 +186,12 @@ bool Application::Initialize()
 
     // Setup MLS-MPM
     {
-        float fov          = 45.0f * glm::pi<float>() / 180.0f;
-        float initDistance = 70.0f;
-        glm::vec3 target(40.0f / 2.0f, 30.0f / 4.0f, 60.0f / 2.0f);
-        float zoomRate = 1.5f;
-        float radius   = 0.6f;
-        float diameter = 2.0f * radius;
+        float fov          = mSimulationVariables.fov;
+        float initDistance = mSimulationVariables.mpmInitDistances[1];
+        glm::vec3 target   = mSimulationVariables.mpmBoxSizes[1] * glm::vec3(0.5f, 0.25f, 0.5f);
+        float zoomRate     = SimulationVariables::MPM_ZOOM_RATE;
+        float radius       = 0.6f;
+        float diameter     = 2.0f * radius;
 
         mMlsMpmSimulator =
             std::make_unique<MlsMpmSimulator>(mParticleBuffer, mPosvelBuffer, diameter, mDevice);
@@ -300,23 +301,36 @@ void Application::UpdateGame()
 
     if (mSimulationVariables.changed)
     {
+        mSimulationVariables.Refresh();
         if (mSimulationVariables.sph)
         {
             mSPHSimulator->Reset(mSimulationVariables.numParticles,
-                                 mSimulationVariables.initialBoxSize,
+                                 mSimulationVariables.boxSize,
                                  mRenderUniforms);
+            glm::vec3 target(0.0f, -mSimulationVariables.boxSize[1] + 0.1, 0.0f);
+            mCamera->Reset(mRenderUniforms,
+                           mSimulationVariables.initDistance,
+                           target,
+                           mSimulationVariables.fov,
+                           SimulationVariables::SPH_ZOOM_RATE);
         }
         else
         {
             mMlsMpmSimulator->Reset(mSimulationVariables.numParticles,
-                                    mSimulationVariables.initialBoxSize,
+                                    mSimulationVariables.boxSize,
                                     mRenderUniforms);
+            glm::vec3 target = mSimulationVariables.boxSize * glm::vec3(0.5f, 0.25f, 0.5f);
+            mCamera->Reset(mRenderUniforms,
+                           mSimulationVariables.initDistance,
+                           target,
+                           mSimulationVariables.fov,
+                           SimulationVariables::MPM_ZOOM_RATE);
         }
     }
 
-    if (mSimulationVariables.boxSizeChanged)
+    if (mSimulationVariables.boxWidthChanged)
     {
-        glm::vec3 realBoxSize = mSimulationVariables.initialBoxSize;
+        glm::vec3 realBoxSize = mSimulationVariables.boxSize;
         realBoxSize.z *= mSimulationVariables.boxWidthRatio;
         if (mSimulationVariables.sph)
         {
@@ -382,11 +396,11 @@ void Application::ResetToSPH()
     float zoomRate                    = 0.05f;
     mSimulationVariables.numParticles = 20000;
 
-    mSimulationVariables.initialBoxSize = glm::vec3(1.0f, 2.0f, 1.0f);
-    glm::vec3 target(0.0f, -1.0f * mSimulationVariables.initialBoxSize[1] + 0.1f, 0.0f);
+    mSimulationVariables.boxSize = glm::vec3(1.0f, 2.0f, 1.0f);
+    glm::vec3 target(0.0f, -1.0f * mSimulationVariables.boxSize[1] + 0.1f, 0.0f);
 
     mSPHSimulator->Reset(mSimulationVariables.numParticles,
-                         mSimulationVariables.initialBoxSize,
+                         mSimulationVariables.boxSize,
                          mRenderUniforms);
 
     mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);
@@ -400,13 +414,13 @@ void Application::ResetToMlsMpm()
     float radius                      = 0.6f;
     mSimulationVariables.numParticles = 70000;
 
-    mSimulationVariables.initialBoxSize = glm::vec3(40.0f, 30.0f, 60.0f);
-    glm::vec3 target(mSimulationVariables.initialBoxSize[0] / 2.0f,
-                     mSimulationVariables.initialBoxSize[1] / 4.0f,
-                     mSimulationVariables.initialBoxSize[2] / 2.0f);
+    mSimulationVariables.boxSize = glm::vec3(40.0f, 30.0f, 60.0f);
+    glm::vec3 target(mSimulationVariables.boxSize[0] / 2.0f,
+                     mSimulationVariables.boxSize[1] / 4.0f,
+                     mSimulationVariables.boxSize[2] / 2.0f);
 
     mMlsMpmSimulator->Reset(mSimulationVariables.numParticles,
-                            mSimulationVariables.initialBoxSize,
+                            mSimulationVariables.boxSize,
                             mRenderUniforms);
 
     mCamera->Reset(mRenderUniforms, initDistance, target, fov, zoomRate);

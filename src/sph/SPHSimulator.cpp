@@ -2,6 +2,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include <random>
+#include <iostream>
 
 #include "../WebGPUUtils.h"
 #include "../ResourceManager.h"
@@ -124,6 +125,8 @@ void SPHSimulator::Reset(int numParticles,
                       sizeof(unsigned int));
     queue.WriteBuffer(mParticleBuffer, 0, particles.data(), sizeof(SPHParticle) * particles.size());
     queue.WriteBuffer(mRealBoxSizeBuffer, 0, glm::value_ptr(initHalfBoxSize), sizeof(glm::vec3));
+
+    std::cout << "SPH numParticle = " << mNumParticles << std::endl;
 }
 
 void SPHSimulator::ChangeBoxSize(const glm::vec3& realBoxSize)

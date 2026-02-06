@@ -1038,25 +1038,17 @@ void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass,
         ImGui::Text("Number of Particles");
         if (simulationVariables.sph)
         {
-            changed =
-                ImGui::RadioButton("10,000", &simulationVariables.numParticles, 10000) || changed;
-            changed =
-                ImGui::RadioButton("20,000", &simulationVariables.numParticles, 20000) || changed;
-            changed =
-                ImGui::RadioButton("30,000", &simulationVariables.numParticles, 30000) || changed;
-            changed =
-                ImGui::RadioButton("40,000", &simulationVariables.numParticles, 40000) || changed;
+            changed = ImGui::RadioButton("10,000", &simulationVariables.index, 0) || changed;
+            changed = ImGui::RadioButton("20,000", &simulationVariables.index, 1) || changed;
+            changed = ImGui::RadioButton("30,000", &simulationVariables.index, 2) || changed;
+            changed = ImGui::RadioButton("40,000", &simulationVariables.index, 3) || changed;
         }
         else
         {
-            changed =
-                ImGui::RadioButton("40,000", &simulationVariables.numParticles, 40000) || changed;
-            changed =
-                ImGui::RadioButton("70,000", &simulationVariables.numParticles, 70000) || changed;
-            changed =
-                ImGui::RadioButton("120,000", &simulationVariables.numParticles, 120000) || changed;
-            changed =
-                ImGui::RadioButton("200,000", &simulationVariables.numParticles, 200000) || changed;
+            changed = ImGui::RadioButton("40,000", &simulationVariables.index, 0) || changed;
+            changed = ImGui::RadioButton("70,000", &simulationVariables.index, 1) || changed;
+            changed = ImGui::RadioButton("120,000", &simulationVariables.index, 2) || changed;
+            changed = ImGui::RadioButton("200,000", &simulationVariables.index, 3) || changed;
         }
 
         ImGui::Separator();
@@ -1065,8 +1057,8 @@ void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass,
         boxChanged = ImGui::SliderFloat("Box width", &simulationVariables.boxWidthRatio, 0.5f, 1.0f)
                      || boxChanged;
 
-        simulationVariables.changed        = changed;
-        simulationVariables.boxSizeChanged = boxChanged;
+        simulationVariables.changed         = changed;
+        simulationVariables.boxWidthChanged = boxChanged;
 
         ImGui::End();
     }
