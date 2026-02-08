@@ -49,8 +49,13 @@ add_executable(
 
 if (EMSCRIPTEN)
 
-    set(USE_FLAGS "-s USE_GLFW=3 -s ASYNCIFY -s ALLOW_MEMORY_GROWTH --preload-file resources/")
-    set(CMAKE_CXX_FLAGS ${USE_FLAGS})
+    target_link_options(
+        main PRIVATE
+        -sUSE_GLFW=3
+        -sASYNCIFY
+        -sALLOW_MEMORY_GROWTH
+        --preload-file resources/
+    )
 
     target_link_libraries(
         main PRIVATE
