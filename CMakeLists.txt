@@ -20,6 +20,9 @@ project(main VERSION 1.0)
 
 if (EMSCRIPTEN)
     set(VCPKG_TARGET_TRIPLET "wasm32-emscripten")
+
+    add_library(glfw INTERFACE)
+    target_link_options(glfw INTERFACE -sUSE_GLFW=3)
 else()
     find_package(glfw3 CONFIG REQUIRED)
 endif()
@@ -51,7 +54,6 @@ if (EMSCRIPTEN)
 
     target_link_options(
         main PRIVATE
-        -sUSE_GLFW=3
         -sASYNCIFY
         -sALLOW_MEMORY_GROWTH
         --preload-file resources/
@@ -59,6 +61,7 @@ if (EMSCRIPTEN)
 
     target_link_libraries(
         main PRIVATE
+        glfw
         dawn::webgpu_dawn
         glm::glm
         imgui::imgui

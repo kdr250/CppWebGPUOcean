@@ -1,13 +1,7 @@
 add_library(glfw3webgpu STATIC glfw3webgpu.mm)
 target_include_directories(glfw3webgpu PUBLIC .)
 
-if (EMSCRIPTEN)
-    set(USE_FLAGS "-s USE_GLFW=3")
-    set(CMAKE_CXX_FLAGS ${USE_FLAGS})
-    target_link_libraries(glfw3webgpu PUBLIC dawn::webgpu_dawn)
-else()
-    target_link_libraries(glfw3webgpu PUBLIC glfw dawn::webgpu_dawn)
-endif()
+target_link_libraries(glfw3webgpu PUBLIC glfw dawn::webgpu_dawn)
 
 if (APPLE)
     target_compile_definitions(glfw3webgpu PRIVATE _GLFW_COCOA)
