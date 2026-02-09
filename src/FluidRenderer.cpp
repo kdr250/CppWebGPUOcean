@@ -421,63 +421,55 @@ void FluidRenderer::InitializeDepthFilterBindGroups(wgpu::Buffer renderUniformBu
 
 void FluidRenderer::DrawDepthFilter(wgpu::CommandEncoder& commandEncoder)
 {
-    std::vector<wgpu::RenderPassDescriptor> renderPassDescs(2);
-
     // filter X
-    {
-        wgpu::RenderPassColorAttachment renderPassColorAttachment {
-            .view          = mTmpDepthMapTextureView,
-            .resolveTarget = nullptr,
-            .loadOp        = wgpu::LoadOp::Clear,
-            .storeOp       = wgpu::StoreOp::Store,
-            .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-            .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
-        };
+    wgpu::RenderPassColorAttachment renderPassColorAttachmentX {
+        .nextInChain   = nullptr,
+        .view          = mTmpDepthMapTextureView,
+        .resolveTarget = nullptr,
+        .loadOp        = wgpu::LoadOp::Clear,
+        .storeOp       = wgpu::StoreOp::Store,
+        .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+    };
 
-        wgpu::RenderPassDescriptor renderPassDescriptor {
-            .nextInChain            = nullptr,
-            .label                  = WebGPUUtils::GenerateString("depth filter X render Pass"),
-            .colorAttachmentCount   = 1,
-            .colorAttachments       = &renderPassColorAttachment,
-            .depthStencilAttachment = nullptr,
-            .timestampWrites        = nullptr,
-        };
-
-        renderPassDescs[0] = renderPassDescriptor;
-    }
+    wgpu::RenderPassDescriptor renderPassDescriptorX {
+        .nextInChain            = nullptr,
+        .label                  = WebGPUUtils::GenerateString("depth filter X render Pass"),
+        .colorAttachmentCount   = 1,
+        .colorAttachments       = &renderPassColorAttachmentX,
+        .depthStencilAttachment = nullptr,
+        .timestampWrites        = nullptr,
+    };
 
     // filter Y
-    {
-        wgpu::RenderPassColorAttachment renderPassColorAttachment {
-            .view          = mDepthMapTextureView,
-            .resolveTarget = nullptr,
-            .loadOp        = wgpu::LoadOp::Clear,
-            .storeOp       = wgpu::StoreOp::Store,
-            .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-            .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
-        };
+    wgpu::RenderPassColorAttachment renderPassColorAttachmentY {
+        .nextInChain   = nullptr,
+        .view          = mDepthMapTextureView,
+        .resolveTarget = nullptr,
+        .loadOp        = wgpu::LoadOp::Clear,
+        .storeOp       = wgpu::StoreOp::Store,
+        .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+    };
 
-        wgpu::RenderPassDescriptor renderPassDescriptor {
-            .nextInChain            = nullptr,
-            .label                  = WebGPUUtils::GenerateString("depth filter Y render Pass"),
-            .colorAttachmentCount   = 1,
-            .colorAttachments       = &renderPassColorAttachment,
-            .depthStencilAttachment = nullptr,
-            .timestampWrites        = nullptr,
-        };
-
-        renderPassDescs[1] = renderPassDescriptor;
-    }
+    wgpu::RenderPassDescriptor renderPassDescriptorY {
+        .nextInChain            = nullptr,
+        .label                  = WebGPUUtils::GenerateString("depth filter Y render Pass"),
+        .colorAttachmentCount   = 1,
+        .colorAttachments       = &renderPassColorAttachmentY,
+        .depthStencilAttachment = nullptr,
+        .timestampWrites        = nullptr,
+    };
 
     for (int i = 0; i < 4; ++i)
     {
-        auto depthFilterPassEncoderX = commandEncoder.BeginRenderPass(&renderPassDescs[0]);
+        auto depthFilterPassEncoderX = commandEncoder.BeginRenderPass(&renderPassDescriptorX);
         depthFilterPassEncoderX.SetBindGroup(0, mDepthFilterBindGroups[0], 0, nullptr);
         depthFilterPassEncoderX.SetPipeline(mDepthFilterPipeline);
         depthFilterPassEncoderX.Draw(6, 1, 0, 0);
         depthFilterPassEncoderX.End();
 
-        auto depthFilterPassEncoderY = commandEncoder.BeginRenderPass(&renderPassDescs[1]);
+        auto depthFilterPassEncoderY = commandEncoder.BeginRenderPass(&renderPassDescriptorY);
         depthFilterPassEncoderY.SetBindGroup(0, mDepthFilterBindGroups[1], 0, nullptr);
         depthFilterPassEncoderY.SetPipeline(mDepthFilterPipeline);
         depthFilterPassEncoderY.Draw(6, 1, 0, 0);
@@ -752,63 +744,53 @@ void FluidRenderer::InitializeThicknessFilterBindGroups(wgpu::Buffer renderUnifo
 
 void FluidRenderer::DrawThicknessFilter(wgpu::CommandEncoder& commandEncoder)
 {
-    std::vector<wgpu::RenderPassDescriptor> renderPassDescs(2);
-
     // filter X
-    {
-        wgpu::RenderPassColorAttachment renderPassColorAttachment {
-            .view          = mTmpThicknessMapTextureView,
-            .resolveTarget = nullptr,
-            .loadOp        = wgpu::LoadOp::Clear,
-            .storeOp       = wgpu::StoreOp::Store,
-            .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-            .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
-        };
+    wgpu::RenderPassColorAttachment renderPassColorAttachmentX {
+        .view          = mTmpThicknessMapTextureView,
+        .resolveTarget = nullptr,
+        .loadOp        = wgpu::LoadOp::Clear,
+        .storeOp       = wgpu::StoreOp::Store,
+        .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+    };
 
-        wgpu::RenderPassDescriptor renderPassDescriptor {
-            .nextInChain            = nullptr,
-            .label                  = WebGPUUtils::GenerateString("thickness filter X render Pass"),
-            .colorAttachmentCount   = 1,
-            .colorAttachments       = &renderPassColorAttachment,
-            .depthStencilAttachment = nullptr,
-            .timestampWrites        = nullptr,
-        };
-
-        renderPassDescs[0] = renderPassDescriptor;
-    }
+    wgpu::RenderPassDescriptor renderPassDescriptorX {
+        .nextInChain            = nullptr,
+        .label                  = WebGPUUtils::GenerateString("thickness filter X render Pass"),
+        .colorAttachmentCount   = 1,
+        .colorAttachments       = &renderPassColorAttachmentX,
+        .depthStencilAttachment = nullptr,
+        .timestampWrites        = nullptr,
+    };
 
     // filter Y
-    {
-        wgpu::RenderPassColorAttachment renderPassColorAttachment {
-            .view          = mThicknessMapTextureView,
-            .resolveTarget = nullptr,
-            .loadOp        = wgpu::LoadOp::Clear,
-            .storeOp       = wgpu::StoreOp::Store,
-            .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-            .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
-        };
+    wgpu::RenderPassColorAttachment renderPassColorAttachmentY {
+        .view          = mThicknessMapTextureView,
+        .resolveTarget = nullptr,
+        .loadOp        = wgpu::LoadOp::Clear,
+        .storeOp       = wgpu::StoreOp::Store,
+        .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
+    };
 
-        wgpu::RenderPassDescriptor renderPassDescriptor {
-            .nextInChain            = nullptr,
-            .label                  = WebGPUUtils::GenerateString("thickness filter Y render Pass"),
-            .colorAttachmentCount   = 1,
-            .colorAttachments       = &renderPassColorAttachment,
-            .depthStencilAttachment = nullptr,
-            .timestampWrites        = nullptr,
-        };
-
-        renderPassDescs[1] = renderPassDescriptor;
-    }
+    wgpu::RenderPassDescriptor renderPassDescriptorY {
+        .nextInChain            = nullptr,
+        .label                  = WebGPUUtils::GenerateString("thickness filter Y render Pass"),
+        .colorAttachmentCount   = 1,
+        .colorAttachments       = &renderPassColorAttachmentY,
+        .depthStencilAttachment = nullptr,
+        .timestampWrites        = nullptr,
+    };
 
     for (int i = 0; i < 1; ++i)
     {
-        auto thicknessFilterPassEncoderX = commandEncoder.BeginRenderPass(&renderPassDescs[0]);
+        auto thicknessFilterPassEncoderX = commandEncoder.BeginRenderPass(&renderPassDescriptorX);
         thicknessFilterPassEncoderX.SetBindGroup(0, mThicknessFilterBindGroups[0], 0, nullptr);
         thicknessFilterPassEncoderX.SetPipeline(mThicknessFilterPipeline);
         thicknessFilterPassEncoderX.Draw(6, 1, 0, 0);
         thicknessFilterPassEncoderX.End();
 
-        auto thicknessFilterPassEncoderY = commandEncoder.BeginRenderPass(&renderPassDescs[1]);
+        auto thicknessFilterPassEncoderY = commandEncoder.BeginRenderPass(&renderPassDescriptorY);
         thicknessFilterPassEncoderY.SetBindGroup(0, mThicknessFilterBindGroups[1], 0, nullptr);
         thicknessFilterPassEncoderY.SetPipeline(mThicknessFilterPipeline);
         thicknessFilterPassEncoderY.Draw(6, 1, 0, 0);
@@ -1181,7 +1163,6 @@ void FluidRenderer::DrawDepthMap(wgpu::CommandEncoder& commandEncoder, uint32_t 
         .loadOp        = wgpu::LoadOp::Clear,
         .storeOp       = wgpu::StoreOp::Store,
         .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
     };
 
     wgpu::RenderPassDepthStencilAttachment depthStencilAttachment {
