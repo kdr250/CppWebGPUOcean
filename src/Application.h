@@ -1,7 +1,7 @@
 #pragma once
 
 #include <webgpu/webgpu_cpp.h>
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
@@ -155,10 +155,10 @@ private:
     wgpu::Limits GetRequiredLimits(wgpu::Adapter adapter) const;
 
     // Mouse events
-    void OnMouseMove(double xpos, double ypos);
-    void OnMouseButton(int button, int action, int mods);
-    void OnScroll(double xoffset, double yoffset);
-    void OnKeyAction(int key, int scancode, int action, int mods);
+    void OnMouseMove();
+    void OnMouseButton(SDL_Event& event);
+    void OnScroll(SDL_Event& event);
+    void OnKeyAction(SDL_Event& event);
 
     // GUI
     void InitializeGUI();
@@ -168,7 +168,7 @@ private:
     bool ShouldClose();
 
 private:
-    GLFWwindow* mWindow;
+    SDL_Window* mWindow                = nullptr;
     wgpu::Instance mInstance           = nullptr;
     wgpu::Device mDevice               = nullptr;
     wgpu::Queue mQueue                 = nullptr;
@@ -189,4 +189,6 @@ private:
     std::unique_ptr<MlsMpmSimulator> mMlsMpmSimulator;
 
     SimulationVariables mSimulationVariables;
+
+    bool mIsRunning = true;
 };

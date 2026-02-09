@@ -1,10 +1,10 @@
 #include "Application.h"
 
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
+#include <imgui_impl_sdl3.h>
 #include <imgui_impl_wgpu.h>
 
-#include <glfw3webgpu.h>
+#include <sdl3webgpu.h>
 #include <iostream>
 #include <fstream>
 #include <random>
@@ -16,65 +16,27 @@ Application::Application() : mWindow(nullptr) {}
 
 bool Application::Initialize()
 {
-    // initialize glfw
-    if (glfwInit() == GLFW_FALSE)
+    // initialize
+    if (!SDL_Init(SDL_INIT_VIDEO))
     {
         return false;
     }
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     // create window
     glm::vec2 windowSize(1024.0f, 768.0f);
-    mWindow =
-        glfwCreateWindow((int)windowSize.x, (int)windowSize.y, "WebGPU Ocean", nullptr, nullptr);
+    mWindow = SDL_CreateWindow("WebGPU Ocean", (int)windowSize.x, (int)windowSize.y, 0);
     if (!mWindow)
     {
-        glfwTerminate();
+        SDL_Quit();
         return false;
     }
-
-    // Add window callbacks
-    glfwSetWindowUserPointer(mWindow, this);
-    glfwSetCursorPosCallback(
-        mWindow,
-        [](GLFWwindow* window, double xpos, double ypos)
-        {
-            auto that = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
-            if (that != nullptr)
-                that->OnMouseMove(xpos, ypos);
-        });
-    glfwSetMouseButtonCallback(
-        mWindow,
-        [](GLFWwindow* window, int button, int action, int mods)
-        {
-            auto that = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
-            if (that != nullptr)
-                that->OnMouseButton(button, action, mods);
-        });
-    glfwSetScrollCallback(mWindow,
-                          [](GLFWwindow* window, double xoffset, double yoffset)
-                          {
-                              auto that =
-                                  reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
-                              if (that != nullptr)
-                                  that->OnScroll(xoffset, yoffset);
-                          });
-    glfwSetKeyCallback(mWindow,
-                       [](GLFWwindow* window, int key, int scancode, int action, int mods)
-                       {
-                           auto that =
-                               reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
-                           if (that != nullptr)
-                               that->OnKeyAction(key, scancode, action, mods);
-                       });
+    SDL_SetWindowResizable(mWindow, false);
 
     // create instance
     mInstance = wgpu::CreateInstance(nullptr);
 
     // create surface
-    mSurface = glfwCreateWindowWGPUSurface(mInstance.Get(), mWindow);
+    mSurface = SDL_GetWGPUSurface(mInstance, mWindow);
 
     // get adaptor
     std::cout << "Requesting adapter..." << std::endl;
@@ -282,7 +244,39 @@ void Application::Loop()
 
 void Application::ProcessInput()
 {
-    // TODO
+    SDL_Event event;
+    while (SDL_PollEvent(&event))
+    {
+        switch (event.type)
+        {
+            case SDL_EVENT_QUIT:
+                mIsRunning = false;
+                break;
+
+            case SDL_EVENT_MOUSE_MOTION:
+                OnMouseMove();
+                break;
+
+            case SDL_EVENT_MOUSE_WHEEL:
+                OnScroll(event);
+                break;
+
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            case SDL_EVENT_MOUSE_BUTTON_UP:
+                OnMouseButton(event);
+                break;
+
+            case SDL_EVENT_KEY_DOWN:
+            case SDL_EVENT_KEY_UP:
+                OnKeyAction(event);
+                break;
+
+            default:
+                break;
+        }
+
+        ImGui_ImplSDL3_ProcessEvent(&event);
+    }
 }
 
 void Application::UpdateGame()
@@ -345,8 +339,6 @@ void Application::UpdateGame()
 
 void Application::GenerateOutput()
 {
-    glfwPollEvents();
-
     mQueue.WriteBuffer(mRenderUniformBuffer, 0, &mRenderUniforms, sizeof(RenderUniforms));
 
     // Get the next target texture view
@@ -478,7 +470,7 @@ wgpu::Limits Application::GetRequiredLimits(wgpu::Adapter adapter) const
     // return requiredLimits;
 }
 
-void Application::OnMouseMove(double xpos, double ypos)
+void Application::OnMouseMove()
 {
     if (!mCamera->isDragging)
         return;
@@ -488,6 +480,9 @@ void Application::OnMouseMove(double xpos, double ypos)
     {
         return;
     }
+
+    float xpos = 0, ypos = 0;
+    SDL_GetMouseState(&xpos, &ypos);
 
     float deltaX = mCamera->prevX - xpos;
     float deltaY = mCamera->prevY - ypos;
@@ -502,29 +497,34 @@ void Application::OnMouseMove(double xpos, double ypos)
     mCamera->RecalculateView(mRenderUniforms);
 }
 
-void Application::OnMouseButton(int button, int action, int mods)
+void Application::OnMouseButton(SDL_Event& event)
 {
+    assert(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP);
+
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse)
     {
         return;
     }
 
-    if (button == GLFW_MOUSE_BUTTON_LEFT)
+    auto action = event.type;
+    auto button = event.button.button;
+
+    if (button == SDL_BUTTON_LEFT)
     {
         switch (action)
         {
-            case GLFW_PRESS:
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
             {
                 mCamera->isDragging = true;
-                double xpos, ypos;
-                glfwGetCursorPos(mWindow, &xpos, &ypos);
+                float xpos, ypos;
+                SDL_GetMouseState(&xpos, &ypos);
                 mCamera->prevX = xpos;
                 mCamera->prevY = ypos;
                 break;
             }
 
-            case GLFW_RELEASE:
+            case SDL_EVENT_MOUSE_BUTTON_UP:
             {
                 mCamera->isDragging = false;
                 break;
@@ -536,8 +536,12 @@ void Application::OnMouseButton(int button, int action, int mods)
     }
 }
 
-void Application::OnScroll(double xoffset, double yoffset)
+void Application::OnScroll(SDL_Event& event)
 {
+    assert(event.type == SDL_EVENT_MOUSE_WHEEL);
+
+    float yoffset = static_cast<float>(event.wheel.y);
+
     mCamera->currentDistance += ((yoffset > 0.0) ? 1.0 : -1.0) * mCamera->zoomRate;
     if (mCamera->currentDistance < mCamera->minDistance)
         mCamera->currentDistance = mCamera->minDistance;
@@ -547,17 +551,23 @@ void Application::OnScroll(double xoffset, double yoffset)
     mCamera->RecalculateView(mRenderUniforms);
 }
 
-void Application::OnKeyAction(int key, int scancode, int action, int mods)
+void Application::OnKeyAction(SDL_Event& event)
 {
-    if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
+    assert(event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP);
+
+    int key     = event.key.scancode;
+    bool down   = event.key.down;
+    bool repeat = event.key.repeat;
+
+    if (down && key == SDL_SCANCODE_ESCAPE)
     {
-        glfwSetWindowShouldClose(mWindow, true);
+        mIsRunning = false;
         return;
     }
 
-    if ((action == GLFW_PRESS || action == GLFW_REPEAT) && (key == GLFW_KEY_W || key == GLFW_KEY_S))
+    if ((down || repeat) && (key == SDL_SCANCODE_W || key == SDL_SCANCODE_S))
     {
-        mCamera->currentDistance += (key == GLFW_KEY_W ? 1.0f : -1.0f) * mCamera->zoomRate;
+        mCamera->currentDistance += (key == SDL_SCANCODE_W ? 1.0f : -1.0f) * mCamera->zoomRate;
         if (mCamera->currentDistance < mCamera->minDistance)
             mCamera->currentDistance = mCamera->minDistance;
         if (mCamera->currentDistance > mCamera->maxDistance)
@@ -579,7 +589,7 @@ void Application::InitializeGUI()
     wgpu::TextureFormat format = surfaceTexture.texture.GetFormat();
 
     // Setup platform/Renderer backends
-    ImGui_ImplGlfw_InitForOther(mWindow, true);
+    ImGui_ImplSDL3_InitForOther(mWindow);
     ImGui_ImplWGPU_InitInfo initInfo;
     initInfo.Device             = mDevice.Get();
     initInfo.DepthStencilFormat = WGPUTextureFormat::WGPUTextureFormat_Depth32Float;
@@ -591,18 +601,18 @@ void Application::InitializeGUI()
 void Application::TerminateGUI()
 {
     ImGui_ImplWGPU_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
 }
 
 void Application::Shutdown()
 {
     TerminateGUI();
 
-    glfwDestroyWindow(mWindow);
-    glfwTerminate();
+    SDL_DestroyWindow(mWindow);
+    SDL_Quit();
 }
 
 bool Application::ShouldClose()
 {
-    return glfwWindowShouldClose(mWindow) == GLFW_TRUE;
+    return !mIsRunning;
 }

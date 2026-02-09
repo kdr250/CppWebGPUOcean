@@ -21,10 +21,12 @@ project(main VERSION 1.0)
 if (EMSCRIPTEN)
     set(VCPKG_TARGET_TRIPLET "wasm32-emscripten")
 
-    add_library(glfw INTERFACE)
-    target_link_options(glfw INTERFACE -sUSE_GLFW=3)
+    add_library(SDL3_SDL3 INTERFACE)
+    target_compile_options(SDL3_SDL3 INTERFACE -sUSE_SDL=3)
+    target_link_options(SDL3_SDL3 INTERFACE -sUSE_SDL=3)
+    add_library(SDL3::SDL3 ALIAS SDL3_SDL3)
 else()
-    find_package(glfw3 CONFIG REQUIRED)
+    find_package(SDL3 CONFIG REQUIRED)
 endif()
 
 find_package(Dawn REQUIRED)
@@ -39,7 +41,7 @@ add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
 
-add_subdirectory(external/glfw3webgpu glfw3webgpu)
+add_subdirectory(external/sdl3webgpu sdl3webgpu)
 add_subdirectory(external/radixsort radixsort)
 add_subdirectory(external/imguiwgpu imguiwgpu)
 
@@ -61,11 +63,11 @@ if (EMSCRIPTEN)
 
     target_link_libraries(
         main PRIVATE
-        glfw
+        SDL3::SDL3
         dawn::webgpu_dawn
         glm::glm
         imgui::imgui
-        glfw3webgpu
+        sdl3webgpu
         radixsort
         imguiwgpu
     )
@@ -83,11 +85,11 @@ else()
 
     target_link_libraries(
         main PRIVATE
-        glfw
+        SDL3::SDL3
         dawn::webgpu_dawn
         glm::glm
         imgui::imgui
-        glfw3webgpu
+        sdl3webgpu
         radixsort
         imguiwgpu
     )

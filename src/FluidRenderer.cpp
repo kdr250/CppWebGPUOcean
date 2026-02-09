@@ -1,7 +1,7 @@
 #include "FluidRenderer.h"
 
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
+#include <imgui_impl_sdl3.h>
 #include <imgui_impl_wgpu.h>
 #include <glm/glm.hpp>
 
@@ -1015,7 +1015,7 @@ void FluidRenderer::UpdateGUI(wgpu::RenderPassEncoder& renderPass,
 {
     // Start the Dear ImGui frame
     ImGui_ImplWGPU_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
     // Build UI
