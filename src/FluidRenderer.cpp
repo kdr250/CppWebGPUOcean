@@ -131,12 +131,12 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
         .layout = mFluidLayout,
         .vertex =
             {
-                .bufferCount   = 0,
-                .buffers       = nullptr,
                 .module        = vertexModule,
                 .entryPoint    = "vs",
                 .constantCount = 0,
                 .constants     = nullptr,
+                .bufferCount   = 0,
+                .buffers       = nullptr,
             },
         .primitive =
             {
@@ -145,9 +145,9 @@ void FluidRenderer::InitializeFluidPipelines(wgpu::TextureFormat presentationFor
     };
 
     wgpu::DepthStencilState depthStencilState {
+        .format            = wgpu::TextureFormat::Depth32Float,
         .depthWriteEnabled = true,
         .depthCompare      = wgpu::CompareFunction::Less,
-        .format            = wgpu::TextureFormat::Depth32Float,
     };
     renderPipelineDesc.depthStencil = &depthStencilState;
 
@@ -221,18 +221,18 @@ void FluidRenderer::DrawFluid(wgpu::CommandEncoder& commandEncoder,
     // The attachment part of the render pass descriptor describes the target texture of the pass
     wgpu::RenderPassColorAttachment renderPassColorAttachment {
         .view          = targetView,
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
         .resolveTarget = nullptr,
         .loadOp        = wgpu::LoadOp::Clear,
         .storeOp       = wgpu::StoreOp::Store,
         .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
     };
 
     wgpu::RenderPassDepthStencilAttachment depthStencilAttachment {
         .view            = mDepthTestTextureView,
-        .depthClearValue = 1.0f,
         .depthLoadOp     = wgpu::LoadOp::Clear,
         .depthStoreOp    = wgpu::StoreOp::Store,
+        .depthClearValue = 1.0f,
     };
 
     // Create the render pass that clears the screen with our color
@@ -425,11 +425,11 @@ void FluidRenderer::DrawDepthFilter(wgpu::CommandEncoder& commandEncoder)
     wgpu::RenderPassColorAttachment renderPassColorAttachmentX {
         .nextInChain   = nullptr,
         .view          = mTmpDepthMapTextureView,
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
         .resolveTarget = nullptr,
         .loadOp        = wgpu::LoadOp::Clear,
         .storeOp       = wgpu::StoreOp::Store,
         .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
     };
 
     wgpu::RenderPassDescriptor renderPassDescriptorX {
@@ -445,11 +445,11 @@ void FluidRenderer::DrawDepthFilter(wgpu::CommandEncoder& commandEncoder)
     wgpu::RenderPassColorAttachment renderPassColorAttachmentY {
         .nextInChain   = nullptr,
         .view          = mDepthMapTextureView,
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
         .resolveTarget = nullptr,
         .loadOp        = wgpu::LoadOp::Clear,
         .storeOp       = wgpu::StoreOp::Store,
         .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
     };
 
     wgpu::RenderPassDescriptor renderPassDescriptorY {
@@ -530,22 +530,22 @@ void FluidRenderer::InitializeThicknessMapPipeline()
     wgpu::BlendState blendState {
         .color =
             {
+                .operation = wgpu::BlendOperation::Add,
                 .srcFactor = wgpu::BlendFactor::One,
                 .dstFactor = wgpu::BlendFactor::One,
-                .operation = wgpu::BlendOperation::Add,
             },
         .alpha =
             {
+                .operation = wgpu::BlendOperation::Add,
                 .srcFactor = wgpu::BlendFactor::One,
                 .dstFactor = wgpu::BlendFactor::One,
-                .operation = wgpu::BlendOperation::Add,
             },
     };
 
     wgpu::ColorTargetState colorTarget {
         .format    = wgpu::TextureFormat::R16Float,
-        .writeMask = wgpu::ColorWriteMask::Red,
         .blend     = &blendState,
+        .writeMask = wgpu::ColorWriteMask::Red,
     };
 
     wgpu::FragmentState fragmentState {
@@ -590,11 +590,11 @@ void FluidRenderer::DrawThicknessMap(wgpu::CommandEncoder& commandEncoder, uint3
 {
     wgpu::RenderPassColorAttachment renderPassColorAttachment {
         .view          = mThicknessMapTextureView,
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
         .resolveTarget = nullptr,
         .loadOp        = wgpu::LoadOp::Clear,
         .storeOp       = wgpu::StoreOp::Store,
         .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
     };
 
     // Create the render pass that clears the screen with our color
@@ -747,11 +747,11 @@ void FluidRenderer::DrawThicknessFilter(wgpu::CommandEncoder& commandEncoder)
     // filter X
     wgpu::RenderPassColorAttachment renderPassColorAttachmentX {
         .view          = mTmpThicknessMapTextureView,
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
         .resolveTarget = nullptr,
         .loadOp        = wgpu::LoadOp::Clear,
         .storeOp       = wgpu::StoreOp::Store,
         .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
     };
 
     wgpu::RenderPassDescriptor renderPassDescriptorX {
@@ -766,11 +766,11 @@ void FluidRenderer::DrawThicknessFilter(wgpu::CommandEncoder& commandEncoder)
     // filter Y
     wgpu::RenderPassColorAttachment renderPassColorAttachmentY {
         .view          = mThicknessMapTextureView,
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
         .resolveTarget = nullptr,
         .loadOp        = wgpu::LoadOp::Clear,
         .storeOp       = wgpu::StoreOp::Store,
         .clearValue    = wgpu::Color {0.0, 0.0, 0.0, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
     };
 
     wgpu::RenderPassDescriptor renderPassDescriptorY {
@@ -849,9 +849,9 @@ void FluidRenderer::InitializeSpherePipelines(wgpu::TextureFormat presentationFo
     };
 
     wgpu::DepthStencilState depthStencilState {
+        .format            = wgpu::TextureFormat::Depth32Float,
         .depthWriteEnabled = true,
         .depthCompare      = wgpu::CompareFunction::Less,
-        .format            = wgpu::TextureFormat::Depth32Float,
     };
     renderPipelineDesc.depthStencil = &depthStencilState;
 
@@ -904,18 +904,18 @@ void FluidRenderer::DrawSphere(wgpu::CommandEncoder& commandEncoder,
     // The attachment part of the render pass descriptor describes the target texture of the pass
     wgpu::RenderPassColorAttachment renderPassColorAttachment {
         .view          = targetView,
+        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
         .resolveTarget = nullptr,
         .loadOp        = wgpu::LoadOp::Clear,
         .storeOp       = wgpu::StoreOp::Store,
         .clearValue    = wgpu::Color {0.8, 0.8, 0.8, 1.0},
-        .depthSlice    = WGPU_DEPTH_SLICE_UNDEFINED,
     };
 
     wgpu::RenderPassDepthStencilAttachment depthStencilAttachment {
         .view            = mDepthTestTextureView,
-        .depthClearValue = 1.0f,
         .depthLoadOp     = wgpu::LoadOp::Clear,
         .depthStoreOp    = wgpu::StoreOp::Store,
+        .depthClearValue = 1.0f,
     };
 
     // Create the render pass that clears the screen with our color
@@ -1106,9 +1106,9 @@ void FluidRenderer::InitializeDepthMapPipeline()
     };
 
     wgpu::DepthStencilState depthStencilState {
+        .format            = wgpu::TextureFormat::Depth32Float,
         .depthWriteEnabled = true,
         .depthCompare      = wgpu::CompareFunction::Less,
-        .format            = wgpu::TextureFormat::Depth32Float,
     };
     renderPipelineDesc.depthStencil = &depthStencilState;
 
@@ -1167,9 +1167,9 @@ void FluidRenderer::DrawDepthMap(wgpu::CommandEncoder& commandEncoder, uint32_t 
 
     wgpu::RenderPassDepthStencilAttachment depthStencilAttachment {
         .view            = mDepthTestTextureView,
-        .depthClearValue = 1.0f,
         .depthLoadOp     = wgpu::LoadOp::Clear,
         .depthStoreOp    = wgpu::StoreOp::Store,
+        .depthClearValue = 1.0f,
     };
 
     // Create the render pass that clears the screen with our color

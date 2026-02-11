@@ -94,20 +94,16 @@ bool Application::Initialize()
 
     // Configure the surface
     wgpu::SurfaceConfiguration config {
-        .nextInChain = nullptr,
-
-        // Configuration of the textures created for the underlying swap chain
-        .width  = (uint32_t)windowSize.x,
-        .height = (uint32_t)windowSize.y,
-        .usage  = wgpu::TextureUsage::RenderAttachment,
-        .format = mSurfaceFormat,
-
-        // And we do not need any particular view format:
+        .nextInChain     = nullptr,
+        .device          = mDevice,
+        .format          = mSurfaceFormat,
+        .usage           = wgpu::TextureUsage::RenderAttachment,
+        .width           = (uint32_t)windowSize.x,
+        .height          = (uint32_t)windowSize.y,
         .viewFormatCount = 0,
         .viewFormats     = nullptr,
-        .device          = mDevice,
-        .presentMode     = wgpu::PresentMode::Fifo,
         .alphaMode       = wgpu::CompositeAlphaMode::Auto,
+        .presentMode     = wgpu::PresentMode::Fifo,
     };
 
     mSurface.Configure(&config);
@@ -433,7 +429,6 @@ wgpu::TextureView Application::GetNextSurfaceTextureView()
     wgpu::TextureViewDescriptor viewDescriptor {
         .nextInChain     = nullptr,
         .label           = WebGPUUtils::GenerateString("Surface texture view"),
-        .usage           = wgpu::TextureUsage::RenderAttachment,
         .format          = surfaceTexture.texture.GetFormat(),
         .dimension       = wgpu::TextureViewDimension::e2D,
         .baseMipLevel    = 0,
@@ -441,6 +436,7 @@ wgpu::TextureView Application::GetNextSurfaceTextureView()
         .baseArrayLayer  = 0,
         .arrayLayerCount = 1,
         .aspect          = wgpu::TextureAspect::All,
+        .usage           = wgpu::TextureUsage::RenderAttachment,
     };
 
     wgpu::TextureView targetView = surfaceTexture.texture.CreateView(&viewDescriptor);

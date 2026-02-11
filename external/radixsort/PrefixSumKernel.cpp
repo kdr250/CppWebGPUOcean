@@ -298,10 +298,11 @@ void PrefixSumKernel::CreatePassRecursive(wgpu::Buffer data, int count)
 
     // Create buffer for block sums
     wgpu::BufferDescriptor bufferDesc {
-        .label = wgpu::StringView("prefix-sum-block-sum"),
-        .size  = (uint64_t)(workgroupCount * 4),
+        .nextInChain = nullptr,
+        .label       = wgpu::StringView("prefix-sum-block-sum"),
         .usage =
             wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopySrc | wgpu::BufferUsage::CopyDst,
+        .size = (uint64_t)(workgroupCount * 4),
     };
     wgpu::Buffer blockSumBuffer = mDevice.CreateBuffer(&bufferDesc);
 
@@ -427,8 +428,8 @@ void PrefixSumKernel::LoadShader(bool avoidBankConflicts)
                                              : wgpu::StringView(prefixSumSource);
 
     wgpu::ShaderModuleDescriptor shaderDesc {
-        .label       = wgpu::StringView("prefix-sum"),
         .nextInChain = &shaderCodeDesc,
+        .label       = wgpu::StringView("prefix-sum"),
     };
 
     mShaderModule = mDevice.CreateShaderModule(&shaderDesc);
