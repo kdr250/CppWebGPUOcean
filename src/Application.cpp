@@ -33,7 +33,13 @@ bool Application::Initialize()
     SDL_SetWindowResizable(mWindow, false);
 
     // create instance
-    mInstance = wgpu::CreateInstance(nullptr);
+    static const auto kTimeoutWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
+    wgpu::InstanceDescriptor instanceDescriptor {
+        .nextInChain          = nullptr,
+        .requiredFeatureCount = 1,
+        .requiredFeatures     = &kTimeoutWaitAny,
+    };
+    mInstance = wgpu::CreateInstance(&instanceDescriptor);
 
     // create surface
     mSurface = SDL_GetWGPUSurface(mInstance, mWindow);
@@ -84,7 +90,7 @@ bool Application::Initialize()
 
     deviceDesc.SetUncapturedErrorCallback(uncapturedErrorCallback);
 
-    mDevice = WebGPUUtils::RequestDeviceSync(adapter, &deviceDesc);
+    mDevice = WebGPUUtils::RequestDeviceSync(mInstance, adapter, &deviceDesc);
 
     WebGPUUtils::InspectDevice(mDevice);
 
