@@ -19,14 +19,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set vcpkg environmental variable
+      - name: Setup vcpkg
         shell: bash
         run: |
           echo "VCPKG_ROOT=$VCPKG_INSTALLATION_ROOT" >> $GITHUB_ENV
-
-      - name: Update vcpkg
-        run: |
-          vcpkg x-update-baseline
+          current_dir=$PWD
+          cd $VCPKG_INSTALLATION_ROOT
+          git pull origin master
+          cd $current_dir
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
