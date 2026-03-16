@@ -1,5 +1,5 @@
 {
-    "builtin-baseline": "2fa7118fb2ce0c27ab73e08ab1991f4cb67af880",
+    "builtin-baseline": "4b77da7fed37817f124936239197833469f1b9a8",
     "dependencies": [
         "sdl3",
         "dawn",
@@ -8,7 +8,8 @@
         {
             "name": "imgui",
             "features": [
-                "sdl3-binding"
+                "sdl3-binding",
+                "webgpu-binding"
             ]
         }
     ]

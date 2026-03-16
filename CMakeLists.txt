@@ -37,7 +37,6 @@ add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
 
 add_subdirectory(external/sdl3webgpu sdl3webgpu)
 add_subdirectory(external/radixsort radixsort)
-add_subdirectory(external/imguiwgpu imguiwgpu)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
@@ -63,7 +62,6 @@ if (EMSCRIPTEN)
         imgui::imgui
         sdl3webgpu
         radixsort
-        imguiwgpu
     )
 
     target_include_directories(
@@ -85,7 +83,6 @@ else()
         imgui::imgui
         sdl3webgpu
         radixsort
-        imguiwgpu
     )
 
     target_include_directories(
