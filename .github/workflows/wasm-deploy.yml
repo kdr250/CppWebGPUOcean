@@ -25,6 +25,7 @@ jobs:
           echo "VCPKG_ROOT=$VCPKG_INSTALLATION_ROOT" >> $GITHUB_ENV
           current_dir=$PWD
           cd $VCPKG_INSTALLATION_ROOT
+          git reset --hard HEAD
           git pull origin master
           cd $current_dir
 
